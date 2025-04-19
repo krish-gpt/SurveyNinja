@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import ResponseDetailsModal from "@/components/response-details-modal";
 import {
-  BarChart,
+  BarChart as BarChartIcon,
   BarChart3,
   Download,
   Edit,
@@ -29,12 +30,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  BarChart as RechartBarChart,
+  BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -45,6 +46,8 @@ export default function ResponseViewer() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("responses");
+  const [selectedResponse, setSelectedResponse] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Fetch form
   const { data: form, isLoading: isLoadingForm } = useQuery<FormType>({
@@ -310,7 +313,14 @@ export default function ResponseViewer() {
                               </span>
                             </TableCell>
                             <TableCell className="text-right">
-                              <Button variant="ghost" size="sm">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedResponse(response);
+                                  setIsModalOpen(true);
+                                }}
+                              >
                                 View Details <ChevronRight className="ml-1 h-4 w-4" />
                               </Button>
                             </TableCell>
@@ -344,7 +354,7 @@ export default function ResponseViewer() {
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="name" angle={-45} textAnchor="end" height={70} />
                               <YAxis allowDecimals={false} />
-                              <Tooltip />
+                              <RechartsTooltip />
                               <Bar dataKey="value" fill="#4f46e5" radius={[4, 4, 0, 0]} />
                             </BarChart>
                           </ResponsiveContainer>
@@ -388,7 +398,7 @@ export default function ResponseViewer() {
                               >
                                 <Cell fill="#4f46e5" />
                               </Pie>
-                              <Tooltip />
+                              <RechartsTooltip />
                             </PieChart>
                           </ResponsiveContainer>
                         </div>
@@ -463,6 +473,14 @@ export default function ResponseViewer() {
           </Tabs>
         </div>
       </main>
+
+      {/* Response Details Modal */}
+      <ResponseDetailsModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        response={selectedResponse}
+        form={form}
+      />
     </div>
   );
 }
