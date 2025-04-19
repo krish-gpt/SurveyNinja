@@ -170,7 +170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post("/api/forms", async (req, res) => {
+  app.post("/api/forms", checkPlanLimits, async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "You must be logged in" });
     }
@@ -185,15 +185,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: parsed.error.format() });
       }
       
-      // Check if user has reached form limit based on plan
-      const formCount = await storage.getFormsCount(userId);
-      const maxForms = req.user.plan === "paid" ? 1000 : 10;
-      
-      if (formCount >= maxForms) {
-        return res.status(403).json({ 
-          message: `You have reached the maximum number of forms (${maxForms}) for your plan`
-        });
-      }
+      // Set create_form action for the checkPlanLimits middleware
+      req.body.action = 'create_form';
       
       const form = await storage.createForm(formData);
       res.status(201).json(form);
@@ -352,19 +345,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Form not found" });
       }
       
-      // Check if form has reached response limit
-      const responseCount = await storage.getResponsesCount(formId);
+      // Set action for the form owner's response limit check
+      req.body.action = 'create_response';
+      
+      // Get form owner
       const user = await storage.getUser(form.userId);
       
       if (!user) {
         return res.status(404).json({ message: "Form owner not found" });
       }
       
+      // Check response limits based on form owner's plan
+      const responseCount = await storage.getResponsesCount(formId);
       const maxResponses = user.plan === "paid" ? 2000 : 10;
       
       if (responseCount >= maxResponses) {
         return res.status(403).json({ 
-          message: `This form has reached the maximum number of responses (${maxResponses})`
+          message: `This form has reached the maximum number of responses (${maxResponses})`,
+          limit: maxResponses,
+          count: responseCount
         });
       }
       

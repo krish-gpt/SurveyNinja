@@ -2,15 +2,27 @@ import Stripe from "stripe";
 import { Express } from "express";
 import { storage } from "./storage";
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  console.warn("STRIPE_SECRET_KEY not set, Stripe functionality will be disabled");
+// Verify all required Stripe keys are present
+const requiredKeys = [
+  'STRIPE_SECRET_KEY', 
+  'STRIPE_WEBHOOK_SECRET', 
+  'STRIPE_PRICE_ID'
+];
+
+const missingKeys = requiredKeys.filter(key => !process.env[key]);
+
+if (missingKeys.length > 0) {
+  console.warn(`Missing Stripe environment variables: ${missingKeys.join(', ')}`);
+  console.warn("Some Stripe functionality may be disabled");
 }
 
+// Initialize Stripe with API key
 const stripe = process.env.STRIPE_SECRET_KEY 
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2023-10-16" })
   : null;
 
-const SUBSCRIPTION_PRICE_ID = process.env.STRIPE_PRICE_ID || "price_placeholder";
+// Get price ID from environment
+const SUBSCRIPTION_PRICE_ID = process.env.STRIPE_PRICE_ID || "";
 
 // Utility function for verifying subscription status
 export async function verifySubscriptionStatus(userId: number, stripeSubscriptionId: string | null, currentPlan: string): Promise<string> {
