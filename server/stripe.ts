@@ -19,7 +19,7 @@ if (missingKeys.length > 0) {
 }
 
 // Initialize Stripe with API key
-const stripe = process.env.STRIPE_SECRET_KEY
+export const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
       apiVersion: "2023-08-16" as any,
     })
