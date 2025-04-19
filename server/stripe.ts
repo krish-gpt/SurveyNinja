@@ -56,24 +56,46 @@ export function setupStripe(app: Express) {
   // Endpoint to create a subscription session
   app.post("/api/create-subscription", async (req, res) => {
     try {
+      console.log("Creating subscription - starting process...");
+      
       if (!req.isAuthenticated()) {
+        console.log("User not authenticated");
         return res.status(401).json({ message: "You must be logged in" });
       }
 
       if (!stripe) {
+        console.log("Stripe not configured");
         return res.status(503).json({ message: "Stripe is not configured" });
       }
 
+      console.log(`Using Stripe Price ID: ${SUBSCRIPTION_PRICE_ID}`);
       const user = req.user;
+      console.log(`Creating subscription for user: ${user.id} (${user.email})`);
 
       // If user already has a subscription
       if (user.stripeSubscriptionId) {
-        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-        
-        return res.json({
-          subscriptionId: subscription.id,
-          clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
-        });
+        console.log(`User already has subscription ID: ${user.stripeSubscriptionId}, retrieving...`);
+        try {
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          console.log(`Retrieved subscription, status: ${subscription.status}`);
+          console.log(`Latest invoice: ${JSON.stringify(subscription.latest_invoice)}`);
+          
+          // Check if there's a payment intent
+          const clientSecret = typeof subscription.latest_invoice !== 'string' && 
+                           subscription.latest_invoice?.payment_intent &&
+                           typeof subscription.latest_invoice.payment_intent !== 'string' ? 
+                           subscription.latest_invoice.payment_intent.client_secret : null;
+          
+          console.log(`Client secret retrieved: ${clientSecret ? 'YES' : 'NO'}`);
+          
+          return res.json({
+            subscriptionId: subscription.id,
+            clientSecret: clientSecret,
+          });
+        } catch (error) {
+          console.error("Error retrieving existing subscription:", error);
+          // Fall through to create a new subscription
+        }
       }
       
       // Create a new customer if one doesn't exist
