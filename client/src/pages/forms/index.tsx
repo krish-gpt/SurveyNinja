@@ -30,8 +30,18 @@ export default function FormsPage() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
 
+  // Define the form type
+  interface FormSummary {
+    id: number;
+    title: string;
+    description?: string;
+    responseCount: number;
+    createdAt: string;
+    updatedAt: string;
+  }
+  
   // Fetch forms
-  const { data: forms = [], isLoading } = useQuery<any[]>({
+  const { data: forms = [], isLoading } = useQuery<FormSummary[]>({
     queryKey: ["/api/forms"],
     enabled: !!user,
   });
@@ -92,7 +102,7 @@ export default function FormsPage() {
             </div>
           ) : forms?.length > 0 ? (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {forms.map((form: any) => (
+              {forms.map((form: FormSummary) => (
                 <Card key={form.id} className="bg-white divide-y divide-gray-200">
                   <CardHeader className="px-4 py-5 sm:px-6 flex justify-between items-start">
                     <div>

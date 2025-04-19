@@ -18,12 +18,35 @@ import { Link } from "wouter";
 
 export default function ResponsesPage() {
   const { user } = useAuth();
-  const [selectedResponse, setSelectedResponse] = useState<any>(null);
-  const [selectedForm, setSelectedForm] = useState<any>(null);
+  
+  // Define the form and response types
+  interface FormSummary {
+    id: number;
+    title: string;
+    description?: string;
+    responseCount: number;
+    lastResponseDate?: string;
+    createdAt: string;
+    updatedAt: string;
+  }
+  
+  interface ResponseData {
+    id: number;
+    createdAt: string;
+    data: Record<string, any>;
+    [key: string]: any;
+  }
+  
+  interface FormWithElements extends FormSummary {
+    elements: any[];
+  }
+  
+  const [selectedResponse, setSelectedResponse] = useState<ResponseData | null>(null);
+  const [selectedForm, setSelectedForm] = useState<FormWithElements | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Fetch user's forms
-  const { data: forms, isLoading: isLoadingForms } = useQuery({
+  const { data: forms, isLoading: isLoadingForms } = useQuery<FormSummary[]>({
     queryKey: ["/api/forms"],
     enabled: !!user,
   });
