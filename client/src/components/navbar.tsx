@@ -58,16 +58,16 @@ export default function Navbar() {
             {/* Desktop navigation */}
             <nav className="hidden sm:ml-6 sm:flex sm:space-x-8">
               {navItems.map((item) => (
-                <Link key={item.name} href={item.href}>
-                  <a
-                    className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                      isLinkActive(item.href)
-                        ? "border-primary text-gray-900"
-                        : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                    }`}
-                  >
-                    {item.name}
-                  </a>
+                <Link 
+                  key={item.name} 
+                  href={item.href}
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    isLinkActive(item.href)
+                      ? "border-primary text-gray-900"
+                      : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                  }`}
+                >
+                  {item.name}
                 </Link>
               ))}
             </nav>
@@ -94,9 +94,9 @@ export default function Navbar() {
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  <Link href="/upgrade">
+                <DropdownMenuItem asChild>
+                  <Link href="/upgrade" className="flex items-center w-full">
+                    <CreditCard className="mr-2 h-4 w-4" />
                     <span>Subscription</span>
                   </Link>
                 </DropdownMenuItem>
@@ -129,28 +129,27 @@ export default function Navbar() {
                   
                   <nav className="flex flex-col space-y-4">
                     {navItems.map((item) => (
-                      <Link key={item.name} href={item.href}>
-                        <a
-                          className={`px-3 py-2 rounded-md text-base font-medium ${
-                            isLinkActive(item.href)
-                              ? "bg-primary/10 text-primary"
-                              : "text-gray-700 hover:bg-gray-100"
-                          }`}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          {item.name}
-                        </a>
+                      <Link 
+                        key={item.name} 
+                        href={item.href}
+                        className={`px-3 py-2 rounded-md text-base font-medium ${
+                          isLinkActive(item.href)
+                            ? "bg-primary/10 text-primary"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }`}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        {item.name}
                       </Link>
                     ))}
                     
                     <div className="pt-4 border-t border-gray-200">
-                      <Link href="/upgrade">
-                        <a
-                          className="px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100"
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          Subscription
-                        </a>
+                      <Link 
+                        href="/upgrade"
+                        className="px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 block"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Subscription
                       </Link>
                       <button
                         className="mt-4 w-full px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 text-left"

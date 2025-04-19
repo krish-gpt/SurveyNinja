@@ -33,16 +33,17 @@ export interface IStorage {
   getResponsesCount(formId: number): Promise<number>;
   
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Using any type to avoid TypeScript issues with the session store
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: any;
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({
       pool,
       createTableIfMissing: true,
+      tableName: 'session'
     });
   }
 
@@ -165,12 +166,11 @@ export class DatabaseStorage implements IStorage {
 
   async getFormsCount(userId: number): Promise<number> {
     const result = await db
-      .select({ count: forms.id })
+      .select()
       .from(forms)
-      .where(eq(forms.userId, userId))
-      .count();
+      .where(eq(forms.userId, userId));
     
-    return result[0]?.count || 0;
+    return result.length;
   }
 
   // Response operations
