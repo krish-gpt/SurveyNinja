@@ -4,6 +4,7 @@ import { useSubscription } from '@/hooks/use-subscription';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, ArrowRight } from 'lucide-react';
+import Navbar from '@/components/navbar';
 
 export default function SubscriptionSuccessPage() {
   const [, setLocation] = useLocation();

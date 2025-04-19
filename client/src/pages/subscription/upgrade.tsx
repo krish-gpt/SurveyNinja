@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { loadStripe } from '@stripe/stripe-js';
 import { CheckCircle, X, Loader2 } from 'lucide-react';
+import Navbar from '@/components/navbar';
 
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
   console.error('Missing Stripe public key!');
@@ -106,125 +107,129 @@ export default function UpgradePage() {
   ];
 
   return (
-    <div className="container max-w-6xl mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8 text-center">Choose Your Plan</h1>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
       
-      <div className="grid md:grid-cols-2 gap-8">
-        {/* Free Plan */}
-        <Card className="relative">
-          {subscription?.plan === 'free' && (
-            <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-              Current Plan
-            </div>
-          )}
-          <CardHeader>
-            <CardTitle>Free Plan</CardTitle>
-            <CardDescription>Get started with the basics</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold mb-6">$0 <span className="text-sm font-normal">/month</span></p>
-            <ul className="space-y-2">
-              {freeFeatures.map((feature, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <CheckCircle className="text-primary h-4 w-4" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline" disabled className="w-full">
-              Current Plan
-            </Button>
-          </CardFooter>
-        </Card>
-
-        {/* Pro Plan */}
-        <Card className="relative border-primary">
-          {subscription?.plan === 'paid' && (
-            <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-              Current Plan
-            </div>
-          )}
-          <CardHeader>
-            <CardTitle>Pro Plan</CardTitle>
-            <CardDescription>Everything you need for serious form building</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold mb-6">$9.99 <span className="text-sm font-normal">/month</span></p>
-            <ul className="space-y-2">
-              {proFeatures.map((feature, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <CheckCircle className="text-primary h-4 w-4" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-          <CardFooter>
-            {subscription?.plan === 'paid' ? (
+      <main className="container max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h1 className="text-3xl font-bold mb-8 text-center">Choose Your Plan</h1>
+        
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Free Plan */}
+          <Card className="relative">
+            {subscription?.plan === 'free' && (
+              <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                Current Plan
+              </div>
+            )}
+            <CardHeader>
+              <CardTitle>Free Plan</CardTitle>
+              <CardDescription>Get started with the basics</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold mb-6">$0 <span className="text-sm font-normal">/month</span></p>
+              <ul className="space-y-2">
+                {freeFeatures.map((feature, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <CheckCircle className="text-primary h-4 w-4" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter>
               <Button variant="outline" disabled className="w-full">
                 Current Plan
               </Button>
-            ) : (
-              <Button 
-                onClick={handleUpgrade} 
-                disabled={isLoading || !user} 
-                className="w-full"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  'Upgrade Now'
-                )}
-              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Pro Plan */}
+          <Card className="relative border-primary">
+            {subscription?.plan === 'paid' && (
+              <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                Current Plan
+              </div>
             )}
-          </CardFooter>
-        </Card>
-      </div>
-
-      {checkoutError && (
-        <div className="mt-6 p-4 border border-destructive text-destructive rounded-md">
-          <div className="flex gap-2 items-center">
-            <X className="h-5 w-5" />
-            <p>{checkoutError}</p>
-          </div>
+            <CardHeader>
+              <CardTitle>Pro Plan</CardTitle>
+              <CardDescription>Everything you need for serious form building</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-3xl font-bold mb-6">$9.99 <span className="text-sm font-normal">/month</span></p>
+              <ul className="space-y-2">
+                {proFeatures.map((feature, index) => (
+                  <li key={index} className="flex items-center gap-2">
+                    <CheckCircle className="text-primary h-4 w-4" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter>
+              {subscription?.plan === 'paid' ? (
+                <Button variant="outline" disabled className="w-full">
+                  Current Plan
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleUpgrade} 
+                  disabled={isLoading || !user} 
+                  className="w-full"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Upgrade Now'
+                  )}
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
         </div>
-      )}
 
-      {/* Subscription Troubleshooting */}
-      <div className="mt-8 p-4 border border-gray-200 rounded-md">
-        <h3 className="font-medium text-lg mb-3">Subscription Troubleshooting</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          If you're experiencing issues with your subscription or you've paid but your plan status isn't reflecting correctly, 
-          try syncing your subscription details with Stripe.
-        </p>
-        <Button 
-          variant="outline" 
-          onClick={handleSyncSubscription} 
-          disabled={syncLoading}
-          className="w-full sm:w-auto"
-        >
-          {syncLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Syncing with Stripe...
-            </>
-          ) : (
-            'Sync Subscription Status'
-          )}
-        </Button>
-      </div>
-      
-      <div className="mt-6 text-center text-sm text-muted-foreground">
-        <p>Payments securely processed by Stripe</p>
-        <p className="mt-2">
-          Having issues? <a href="#" className="underline">Contact support</a>
-        </p>
-      </div>
+        {checkoutError && (
+          <div className="mt-6 p-4 border border-destructive text-destructive rounded-md">
+            <div className="flex gap-2 items-center">
+              <X className="h-5 w-5" />
+              <p>{checkoutError}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Subscription Troubleshooting */}
+        <div className="mt-8 p-4 border border-gray-200 rounded-md">
+          <h3 className="font-medium text-lg mb-3">Subscription Troubleshooting</h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            If you're experiencing issues with your subscription or you've paid but your plan status isn't reflecting correctly, 
+            try syncing your subscription details with Stripe.
+          </p>
+          <Button 
+            variant="outline" 
+            onClick={handleSyncSubscription} 
+            disabled={syncLoading}
+            className="w-full sm:w-auto"
+          >
+            {syncLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Syncing with Stripe...
+              </>
+            ) : (
+              'Sync Subscription Status'
+            )}
+          </Button>
+        </div>
+        
+        <div className="mt-6 text-center text-sm text-muted-foreground">
+          <p>Payments securely processed by Stripe</p>
+          <p className="mt-2">
+            Having issues? <a href="#" className="underline">Contact support</a>
+          </p>
+        </div>
+      </main>
     </div>
   );
 }
