@@ -2,14 +2,15 @@ import { useState, useEffect } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import Navbar from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 // Make sure to load Stripe outside component render
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
@@ -21,6 +22,47 @@ function CheckoutForm() {
   const elements = useElements();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [redirectAfterPayment, setRedirectAfterPayment] = useState(false);
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  
+  // Check URL for payment success
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const paymentIntent = query.get('payment_intent');
+    const redirectStatus = query.get('redirect_status');
+    
+    if (paymentIntent && redirectStatus === 'succeeded') {
+      handlePaymentSuccess();
+    }
+  }, []);
+  
+  const handlePaymentSuccess = async () => {
+    try {
+      // Call our success endpoint to update the plan
+      const response = await apiRequest("GET", "/api/payment-success");
+      const data = await response.json();
+      
+      if (data.success) {
+        // Invalidate queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ["/api/subscription"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        
+        toast({
+          title: "Payment successful!",
+          description: "Your subscription has been activated. Enjoy your Pro plan!",
+        });
+        
+        // Redirect to dashboard after 2 seconds
+        setRedirectAfterPayment(true);
+        setTimeout(() => {
+          setLocation('/');
+        }, 2000);
+      }
+    } catch (error: any) {
+      console.error("Error verifying payment:", error);
+    }
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +77,8 @@ function CheckoutForm() {
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/`,
+          // Return to the same page to handle success via query params
+          return_url: `${window.location.origin}/upgrade`,
         },
       });
       

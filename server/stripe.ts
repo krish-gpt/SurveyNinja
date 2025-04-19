@@ -199,6 +199,47 @@ export function setupStripe(app: Express) {
     res.status(200).json({ received: true });
   });
 
+  // Payment success - for when webhook isn't available
+  app.get('/api/payment-success', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+
+    try {
+      const user = req.user;
+      
+      // Check if user has a subscription ID but is still on free plan
+      if (user.stripeSubscriptionId && user.plan === 'free') {
+        console.log('Manual success handler: Upgrading user to paid plan');
+        
+        // Retrieve subscription to ensure it's active
+        if (stripe) {
+          const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+          
+          if (subscription.status === 'active' || subscription.status === 'trialing') {
+            // Update user to paid plan
+            await storage.updateUserPlan(user.id, 'paid');
+            
+            // Update payment date
+            const currentDate = new Date();
+            await storage.updateUserStripeInfo(user.id, {
+              customerId: user.stripeCustomerId,
+              subscriptionId: user.stripeSubscriptionId,
+              paymentDate: currentDate
+            });
+            
+            return res.json({ success: true, plan: 'paid' });
+          }
+        }
+      }
+      
+      return res.json({ success: false, plan: user.plan });
+    } catch (error: any) {
+      console.error('Error processing payment success:', error);
+      return res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get subscription status
   app.get('/api/subscription', async (req, res) => {
     if (!req.isAuthenticated()) {
