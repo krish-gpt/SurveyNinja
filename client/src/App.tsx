@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import AuthPage from "@/pages/auth-page";
+import FormsPage from "@/pages/forms";
 import FormBuilder from "@/pages/forms/form-builder";
 import FormView from "@/pages/forms/form-view";
 import ResponseViewer from "@/pages/forms/response-viewer";
@@ -19,6 +20,7 @@ function Router() {
     <Switch>
       <ProtectedRoute path="/" component={Dashboard} />
       <Route path="/auth" component={AuthPage} />
+      <ProtectedRoute path="/forms" component={FormsPage} />
       <ProtectedRoute path="/forms/new" component={FormBuilder} />
       <ProtectedRoute path="/forms/:id/edit" component={FormBuilder} />
       <ProtectedRoute path="/forms/:id/responses" component={ResponseViewer} />

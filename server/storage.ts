@@ -204,12 +204,11 @@ export class DatabaseStorage implements IStorage {
 
   async getResponsesCount(formId: number): Promise<number> {
     const result = await db
-      .select({ count: responses.id })
+      .select()
       .from(responses)
-      .where(eq(responses.formId, formId))
-      .count();
+      .where(eq(responses.formId, formId));
     
-    return result[0]?.count || 0;
+    return result.length;
   }
 }
 
