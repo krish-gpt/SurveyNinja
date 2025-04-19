@@ -75,7 +75,24 @@ export default function FormBuilder() {
 
   // Handle element drag start
   const handleDragStart = (event: React.DragEvent, elementType: string) => {
+    // Set data for HTML5 drag and drop
     event.dataTransfer.setData("element-type", elementType);
+    
+    // Required to make elements draggable in most browsers
+    event.dataTransfer.effectAllowed = "copy";
+    
+    // Add some visual feedback
+    if (event.currentTarget) {
+      event.currentTarget.classList.add("dragging");
+      
+      // Remove the class when drag ends
+      const handleDragEnd = () => {
+        event.currentTarget.classList.remove("dragging");
+        document.removeEventListener("dragend", handleDragEnd);
+      };
+      
+      document.addEventListener("dragend", handleDragEnd);
+    }
   };
 
   // Add element to form
