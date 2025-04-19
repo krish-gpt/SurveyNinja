@@ -15,6 +15,7 @@ import {
 import ResponseDetailsModal from "@/components/response-details-modal";
 import { BarChart, ChevronRight, Loader2, MessageSquare, Search } from "lucide-react";
 import { Link } from "wouter";
+import { Form as FormType, FormElement } from "@shared/schema";
 
 export default function ResponsesPage() {
   const { user } = useAuth();
@@ -37,12 +38,13 @@ export default function ResponsesPage() {
     [key: string]: any;
   }
   
-  interface FormWithElements extends FormSummary {
-    elements: any[];
+  // Extend FormType to include elements array as expected by ResponseDetailsModal
+  interface DetailedForm extends FormType {
+    elements: FormElement[];
   }
   
   const [selectedResponse, setSelectedResponse] = useState<ResponseData | null>(null);
-  const [selectedForm, setSelectedForm] = useState<FormWithElements | null>(null);
+  const [selectedForm, setSelectedForm] = useState<DetailedForm | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Fetch user's forms

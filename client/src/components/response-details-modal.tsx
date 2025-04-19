@@ -20,7 +20,7 @@ interface ResponseDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   response: ResponseData | null;
-  form: FormWithElements | null;
+  form: FormWithElements | null | any;
 }
 
 export default function ResponseDetailsModal({ isOpen, onClose, response, form }: ResponseDetailsModalProps) {
