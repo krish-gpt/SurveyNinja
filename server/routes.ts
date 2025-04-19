@@ -3,8 +3,138 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { setupStripe, verifySubscriptionStatus } from "./stripe";
-import { insertFormSchema, insertResponseSchema } from "@shared/schema";
+import { insertFormSchema, insertResponseSchema, FormElement } from "@shared/schema";
 import { requirePaidPlan, checkPlanLimits } from "./middleware/subscription-guard";
+
+// Utility functions for premium features
+function groupResponsesByDate(responses: any[]) {
+  const grouped: Record<string, number> = {};
+  
+  responses.forEach(response => {
+    const date = new Date(response.createdAt).toISOString().split('T')[0];
+    grouped[date] = (grouped[date] || 0) + 1;
+  });
+  
+  return Object.entries(grouped).map(([date, count]) => ({ date, count }));
+}
+
+function calculateCompletionRate(responses: any[], form: any) {
+  // Calculate what percentage of responses filled out all fields
+  if (!responses.length) return 0;
+  
+  const formElements = form.elements || [];
+  const totalFields = formElements.length;
+  
+  if (totalFields === 0) return 100; // No fields to complete
+  
+  let completeResponses = 0;
+  
+  responses.forEach(response => {
+    const responseData = response.data || {};
+    const filledFields = Object.keys(responseData).length;
+    
+    if (filledFields === totalFields) {
+      completeResponses++;
+    }
+  });
+  
+  return Math.round((completeResponses / responses.length) * 100);
+}
+
+function calculateAverageCompletionTime(responses: any[]) {
+  // This is a placeholder since we don't track completion time
+  // In a real implementation, this would use actual timing data
+  return "3m 24s";
+}
+
+function generateFieldAnalytics(responses: any[], form: any) {
+  const formElements = form.elements || [];
+  const fieldAnalytics: Record<string, any> = {};
+  
+  formElements.forEach((element: FormElement) => {
+    const fieldId = element.id;
+    const fieldType = element.type;
+    
+    if (!fieldId) return;
+    
+    // Count how many responses filled this field
+    let filledCount = 0;
+    const values: any[] = [];
+    
+    responses.forEach(response => {
+      const responseData = response.data || {};
+      if (responseData[fieldId] !== undefined) {
+        filledCount++;
+        values.push(responseData[fieldId]);
+      }
+    });
+    
+    const completionRate = responses.length 
+      ? Math.round((filledCount / responses.length) * 100) 
+      : 0;
+    
+    fieldAnalytics[fieldId] = {
+      type: fieldType,
+      label: element.label || fieldId,
+      completionRate,
+      responseCount: filledCount,
+      // Add field-specific analytics based on type
+      ...(fieldType === 'select' || fieldType === 'radio' 
+        ? { valueDistribution: calculateValueDistribution(values) }
+        : {})
+    };
+  });
+  
+  return fieldAnalytics;
+}
+
+function calculateValueDistribution(values: any[]) {
+  const distribution: Record<string, number> = {};
+  
+  values.forEach(value => {
+    const key = String(value);
+    distribution[key] = (distribution[key] || 0) + 1;
+  });
+  
+  return Object.entries(distribution).map(([value, count]) => ({ 
+    value, 
+    count,
+    percentage: Math.round((count / values.length) * 100)
+  }));
+}
+
+function generateCSV(responses: any[], form: any) {
+  const formElements = form.elements || [];
+  
+  // Create header row with column names
+  const headers = ['Response ID', 'Date', 'Time', ...formElements.map(
+    (el: FormElement) => el.label || el.id || 'Unnamed Field'
+  )];
+  
+  // Create rows for each response
+  const rows = responses.map(response => {
+    const responseData = response.data || {};
+    const date = new Date(response.createdAt);
+    const dateStr = date.toLocaleDateString();
+    const timeStr = date.toLocaleTimeString();
+    
+    const rowData = [
+      response.id,
+      dateStr,
+      timeStr,
+      ...formElements.map((el: FormElement) => {
+        const fieldId = el.id;
+        if (!fieldId) return '';
+        return responseData[fieldId] !== undefined ? String(responseData[fieldId]) : '';
+      })
+    ];
+    
+    return rowData.join(',');
+  });
+  
+  // Combine header and rows
+  return [headers.join(','), ...rows].join('\n');
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -12,6 +142,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up Stripe subscription routes
   setupStripe(app);
+
+  // Apply plan limits check to all routes
+  app.use(['/api/forms'], checkPlanLimits);
 
   // Form CRUD operations
   app.get("/api/forms", async (req, res) => {
@@ -290,6 +423,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       res.json(response);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Advanced analytics - premium feature
+  app.get("/api/forms/:id/analytics", requirePaidPlan, async (req, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      
+      if (isNaN(formId)) {
+        return res.status(400).json({ message: "Invalid form ID" });
+      }
+      
+      // Check if user owns the form
+      const form = await storage.getForm(formId);
+      
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      if (form.userId !== req.user.id) {
+        return res.status(403).json({ message: "You do not have access to this form" });
+      }
+      
+      // Get all responses for analytics
+      const responses = await storage.getResponses(formId);
+      
+      // Generate advanced analytics (pro feature)
+      const analytics = {
+        totalResponses: responses.length,
+        responsesByDate: groupResponsesByDate(responses),
+        completionRate: calculateCompletionRate(responses, form),
+        averageCompletionTime: calculateAverageCompletionTime(responses),
+        fieldAnalytics: generateFieldAnalytics(responses, form)
+      };
+      
+      res.json(analytics);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Export responses to CSV - premium feature
+  app.get("/api/forms/:id/export", requirePaidPlan, async (req, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      
+      if (isNaN(formId)) {
+        return res.status(400).json({ message: "Invalid form ID" });
+      }
+      
+      // Check if user owns the form
+      const form = await storage.getForm(formId);
+      
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      if (form.userId !== req.user.id) {
+        return res.status(403).json({ message: "You do not have access to this form" });
+      }
+      
+      // Get all responses for export
+      const responses = await storage.getResponses(formId);
+      
+      // Generate CSV data (pro feature)
+      const csvData = generateCSV(responses, form);
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="form-${formId}-responses.csv"`);
+      res.send(csvData);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

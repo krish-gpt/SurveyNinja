@@ -1,397 +1,189 @@
-import { useState, useEffect } from "react";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
-import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import Navbar from "@/components/navbar";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Check, AlertCircle, Loader2, Lock } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { useSubscription } from '@/hooks/use-subscription';
+import { apiRequest } from '@/lib/queryClient';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { loadStripe } from '@stripe/stripe-js';
+import { CheckCircle, X, Loader2 } from 'lucide-react';
 
-// Make sure to load Stripe outside component render
+if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
+  console.error('Missing Stripe public key!');
+}
+
+// Initialize Stripe outside the component
 const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
   : null;
 
-// Stripe checkout redirect button - simple alternative to Stripe Elements
-function StripeCheckoutButton() {
+export default function UpgradePage() {
+  const { user } = useAuth();
+  const { subscription } = useSubscription();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  
-  const handleCheckout = async () => {
-    setIsLoading(true);
-    
-    try {
-      // Create a checkout session and redirect to Stripe
-      const response = await apiRequest("POST", "/api/create-checkout-session");
-      const data = await response.json();
-      
-      if (data.url) {
-        // Redirect to Stripe Checkout
-        window.location.href = data.url;
-      } else {
-        throw new Error("Could not create checkout session");
-      }
-    } catch (error: any) {
-      console.error("Checkout error:", error);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  const handleUpgrade = async () => {
+    if (!stripePromise) {
       toast({
-        title: "Checkout failed",
-        description: error.message || "An error occurred during checkout",
-        variant: "destructive",
+        title: 'Configuration Error',
+        description: 'Stripe is not properly configured. Please contact support.',
+        variant: 'destructive'
       });
+      return;
+    }
+
+    setIsLoading(true);
+    setCheckoutError(null);
+
+    try {
+      // Create checkout session on server
+      const response = await apiRequest('POST', '/api/create-checkout-session', {
+        priceId: import.meta.env.STRIPE_PRICE_ID || 'price_default', // Fallback ID just for safety
+        successUrl: `${window.location.origin}/subscription/success`,
+        cancelUrl: `${window.location.origin}/subscription/upgrade`
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create checkout session');
+      }
+      
+      const { sessionId } = await response.json();
+      
+      // Redirect to Stripe Checkout
+      const stripe = await stripePromise;
+      const { error } = await stripe.redirectToCheckout({ sessionId });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      setCheckoutError(error.message || 'An unexpected error occurred');
+      toast({
+        title: 'Checkout Failed',
+        description: error.message || 'Could not initiate checkout. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
       setIsLoading(false);
     }
   };
-  
-  return (
-    <div className="border p-6 rounded-md bg-white">
-      <h3 className="text-lg font-medium mb-4">Complete Your Subscription</h3>
-      
-      <div className="space-y-4 mb-6">
-        <div className="flex justify-between">
-          <span>Pro Plan (Monthly)</span>
-          <span>$10.00</span>
-        </div>
-        <div className="flex justify-between font-medium">
-          <span>Total</span>
-          <span>$10.00 / month</span>
-        </div>
-      </div>
-      
-      <Button 
-        className="w-full" 
-        onClick={handleCheckout}
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Preparing Checkout...
-          </>
-        ) : (
-          "Proceed to Checkout"
-        )}
-      </Button>
-      
-      <div className="mt-4 text-sm text-gray-500 flex items-center justify-center">
-        <Lock className="w-4 h-4 mr-1" />
-        Secure payment via Stripe
-      </div>
-    </div>
-  );
-}
 
-// Original Stripe checkout form - keeping for reference
-function CheckoutForm() {
-  const stripe = useStripe();
-  const elements = useElements();
-  const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [redirectAfterPayment, setRedirectAfterPayment] = useState(false);
-  const [, setLocation] = useLocation();
-  const queryClient = useQueryClient();
-  
-  // Check URL for payment success
-  useEffect(() => {
-    const query = new URLSearchParams(window.location.search);
-    const paymentIntent = query.get('payment_intent');
-    const redirectStatus = query.get('redirect_status');
-    
-    if (paymentIntent && redirectStatus === 'succeeded') {
-      handlePaymentSuccess();
-    }
-  }, []);
-  
-  const handlePaymentSuccess = async () => {
-    try {
-      // Call our success endpoint to update the plan
-      const response = await apiRequest("GET", "/api/payment-success");
-      const data = await response.json();
-      
-      if (data.success) {
-        // Invalidate queries to refresh data
-        queryClient.invalidateQueries({ queryKey: ["/api/subscription"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-        
-        toast({
-          title: "Payment successful!",
-          description: "Your subscription has been activated. Enjoy your Pro plan!",
-        });
-        
-        // Redirect to dashboard after 2 seconds
-        setRedirectAfterPayment(true);
-        setTimeout(() => {
-          setLocation('/');
-        }, 2000);
-      }
-    } catch (error: any) {
-      console.error("Error verifying payment:", error);
-    }
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!stripe || !elements) {
-      return;
-    }
-    
-    setIsProcessing(true);
-    
-    try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          // Return to the same page to handle success via query params
-          return_url: `${window.location.origin}/upgrade`,
-        },
-      });
-      
-      if (error) {
-        toast({
-          title: "Payment failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    } catch (err: any) {
-      toast({
-        title: "Payment failed",
-        description: err.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  
-  return (
-    <form onSubmit={handleSubmit}>
-      <PaymentElement className="mb-6" />
-      <Button 
-        type="submit" 
-        className="w-full" 
-        disabled={!stripe || isProcessing}
-      >
-        {isProcessing ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          "Subscribe Now"
-        )}
-      </Button>
-    </form>
-  );
-}
+  // Features lists
+  const freeFeatures = [
+    'Up to 10 forms',
+    'Up to 10 responses per form', 
+    'Basic form builder',
+    'Public form sharing'
+  ];
 
-export default function Upgrade() {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [clientSecret, setClientSecret] = useState("");
-  
-  // Fetch subscription status
-  const { data: subscription, isLoading: isLoadingSubscription } = useQuery({
-    queryKey: ["/api/subscription"],
-    enabled: !!user,
-  });
-  
-  // Check URL parameters for Stripe Checkout success
-  useEffect(() => {
-    if (user) {
-      const query = new URLSearchParams(window.location.search);
-      const success = query.get('success');
-      
-      if (success === 'true') {
-        console.log("Detected successful payment from URL");
-        // Refresh data after successful payment
-        queryClient.invalidateQueries({ queryKey: ["/api/subscription"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-        
-        toast({
-          title: "Subscription successful!",
-          description: "Your subscription has been activated",
-        });
-        
-        // Clear URL parameters
-        window.history.replaceState(null, '', '/upgrade');
-      }
-    }
-  }, [user, toast, queryClient]);
-  
-  // Handler for canceling subscription
-  const handleCancelSubscription = async () => {
-    try {
-      await apiRequest("POST", "/api/cancel-subscription");
-      toast({
-        title: "Subscription cancelled",
-        description: "Your subscription will be cancelled at the end of the current billing period",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Failed to cancel subscription",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-  
+  const proFeatures = [
+    'Unlimited forms',
+    'Up to 2000 responses per form',
+    'Advanced analytics',
+    'Export responses to CSV',
+    'Priority support'
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
+    <div className="container max-w-6xl mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-8 text-center">Choose Your Plan</h1>
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900">Subscription Plans</h1>
-          <p className="mt-2 text-lg text-gray-600">
-            Choose the right plan for your needs
-          </p>
-          
-          <div className="mt-8 grid gap-6 lg:grid-cols-2">
-            {/* Free Plan */}
-            <Card className={`border ${user?.plan === "free" ? "border-primary" : "border-gray-200"}`}>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-2xl font-bold">Free Plan</CardTitle>
-                    <CardDescription className="mt-1">For individuals just getting started</CardDescription>
-                  </div>
-                  {user?.plan === "free" && (
-                    <Badge className="bg-primary text-white">Current Plan</Badge>
-                  )}
-                </div>
-                <div className="mt-4">
-                  <span className="text-3xl font-bold">$0</span>
-                  <span className="text-gray-500 ml-1">/month</span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  <li className="flex items-start">
-                    <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Create up to 10 forms</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Collect up to 10 responses per form</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Basic form elements</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Export responses as CSV</span>
-                  </li>
-                </ul>
-                
-                {user?.plan === "paid" && (
-                  <Button 
-                    className="w-full mt-6" 
-                    variant="outline"
-                    onClick={handleCancelSubscription}
-                  >
-                    Downgrade to Free
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-            
-            {/* Pro Plan */}
-            <Card className={`border ${user?.plan === "paid" ? "border-primary" : "border-gray-200"}`}>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-2xl font-bold">Pro Plan</CardTitle>
-                    <CardDescription className="mt-1">For professionals and businesses</CardDescription>
-                  </div>
-                  {user?.plan === "paid" && (
-                    <Badge className="bg-primary text-white">Current Plan</Badge>
-                  )}
-                </div>
-                <div className="mt-4">
-                  <span className="text-3xl font-bold">$10</span>
-                  <span className="text-gray-500 ml-1">/month</span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  <li className="flex items-start">
-                    <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Create up to 1,000 forms</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Collect up to 2,000 responses per form</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Advanced form elements</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Advanced analytics and reporting</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Priority support</span>
-                  </li>
-                </ul>
-                
-                {user?.plan !== "paid" && (
-                  <div className="mt-6">
-                    <StripeCheckoutButton />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="mt-8 bg-white p-6 rounded-lg shadow border border-gray-200">
-            <h2 className="text-xl font-semibold mb-4">Subscription Details</h2>
-            
-            {isLoadingSubscription ? (
-              <div className="flex justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
+      <div className="grid md:grid-cols-2 gap-8">
+        {/* Free Plan */}
+        <Card className="relative">
+          {subscription?.plan === 'free' && (
+            <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+              Current Plan
+            </div>
+          )}
+          <CardHeader>
+            <CardTitle>Free Plan</CardTitle>
+            <CardDescription>Get started with the basics</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold mb-6">$0 <span className="text-sm font-normal">/month</span></p>
+            <ul className="space-y-2">
+              {freeFeatures.map((feature, index) => (
+                <li key={index} className="flex items-center gap-2">
+                  <LuCheckCircle className="text-primary" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+          <CardFooter>
+            <Button variant="outline" disabled className="w-full">
+              Current Plan
+            </Button>
+          </CardFooter>
+        </Card>
+
+        {/* Pro Plan */}
+        <Card className="relative border-primary">
+          {subscription?.plan === 'paid' && (
+            <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+              Current Plan
+            </div>
+          )}
+          <CardHeader>
+            <CardTitle>Pro Plan</CardTitle>
+            <CardDescription>Everything you need for serious form building</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold mb-6">$9.99 <span className="text-sm font-normal">/month</span></p>
+            <ul className="space-y-2">
+              {proFeatures.map((feature, index) => (
+                <li key={index} className="flex items-center gap-2">
+                  <LuCheckCircle className="text-primary" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+          <CardFooter>
+            {subscription?.plan === 'paid' ? (
+              <Button variant="outline" disabled className="w-full">
+                Current Plan
+              </Button>
             ) : (
-              <div className="space-y-4">
-                <div className="flex justify-between pb-2 border-b">
-                  <span className="font-medium">Current Plan:</span>
-                  <span className="capitalize">{user?.plan || "Free"}</span>
-                </div>
-                
-                {user?.plan === "paid" && (
+              <Button 
+                onClick={handleUpgrade} 
+                disabled={isLoading || !user} 
+                className="w-full"
+              >
+                {isLoading ? (
                   <>
-                    <div className="flex justify-between pb-2 border-b">
-                      <span className="font-medium">Billing Cycle:</span>
-                      <span>Monthly</span>
-                    </div>
-                    <div className="flex justify-between pb-2 border-b">
-                      <span className="font-medium">Next Billing Date:</span>
-                      <span>
-                        {user.paymentDate 
-                          ? new Date(new Date(user.paymentDate).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() 
-                          : "N/A"}
-                      </span>
-                    </div>
-                    <div className="flex justify-end mt-4">
-                      <Button variant="outline" onClick={handleCancelSubscription}>
-                        Cancel Subscription
-                      </Button>
-                    </div>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
                   </>
+                ) : (
+                  'Upgrade Now'
                 )}
-              </div>
+              </Button>
             )}
+          </CardFooter>
+        </Card>
+      </div>
+
+      {checkoutError && (
+        <div className="mt-6 p-4 border border-destructive text-destructive rounded-md">
+          <div className="flex gap-2 items-center">
+            <LuX className="h-5 w-5" />
+            <p>{checkoutError}</p>
           </div>
         </div>
-      </main>
+      )}
+
+      <div className="mt-10 text-center text-sm text-muted-foreground">
+        <p>Payments securely processed by Stripe</p>
+        <p className="mt-2">
+          Having issues? <a href="#" className="underline">Contact support</a>
+        </p>
+      </div>
     </div>
   );
 }
