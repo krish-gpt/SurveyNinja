@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Star, Loader2, AlertCircle } from "lucide-react";
+import { Star, Loader2, AlertCircle, Upload } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function FormView() {
@@ -223,6 +223,36 @@ export default function FormView() {
               onChange={(e) => handleFieldChange(element.id, e.target.value)}
               className="mt-1"
             />
+          </div>
+        );
+      
+      case "file-upload":
+        return (
+          <div className="mb-4">
+            <Label htmlFor={element.id}>{element.label}</Label>
+            <div className="mt-2 border-2 border-dashed border-gray-300 rounded-md p-6">
+              <Input
+                id={element.id}
+                type="file"
+                onChange={(e) => {
+                  // For a real implementation, we would handle file uploads differently
+                  // This is a simplified version for the MVP
+                  const files = e.target.files;
+                  if (files && files.length > 0) {
+                    handleFieldChange(element.id, files[0].name);
+                  }
+                }}
+                className="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-md file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-primary file:text-white
+                  hover:file:bg-primary/90"
+              />
+              <p className="text-xs text-gray-500 mt-2">
+                {formData[element.id] ? `Selected: ${formData[element.id]}` : "No file selected"}
+              </p>
+            </div>
           </div>
         );
       
