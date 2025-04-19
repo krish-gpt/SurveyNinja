@@ -494,7 +494,7 @@ export default function ResponseViewer() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         response={selectedResponse}
-        form={form}
+        form={form as FormWithElements | null}
       />
     </div>
   );
