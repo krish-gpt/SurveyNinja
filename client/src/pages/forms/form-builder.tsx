@@ -80,19 +80,6 @@ export default function FormBuilder() {
     
     // Required to make elements draggable in most browsers
     event.dataTransfer.effectAllowed = "copy";
-    
-    // Add some visual feedback
-    if (event.currentTarget) {
-      event.currentTarget.classList.add("dragging");
-      
-      // Remove the class when drag ends
-      const handleDragEnd = () => {
-        event.currentTarget.classList.remove("dragging");
-        document.removeEventListener("dragend", handleDragEnd);
-      };
-      
-      document.addEventListener("dragend", handleDragEnd);
-    }
   };
 
   // Add element to form
