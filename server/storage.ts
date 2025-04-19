@@ -175,17 +175,17 @@ export class DatabaseStorage implements IStorage {
 
   // Response operations
   async getResponses(formId: number, limit?: number): Promise<Response[]> {
-    let query = db
+    const result = await db
       .select()
       .from(responses)
       .where(eq(responses.formId, formId))
       .orderBy(desc(responses.createdAt));
     
     if (limit !== undefined) {
-      query = query.limit(limit);
+      return result.slice(0, limit);
     }
     
-    return query;
+    return result;
   }
 
   async getResponse(id: number): Promise<Response | undefined> {
