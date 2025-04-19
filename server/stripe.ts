@@ -461,8 +461,8 @@ export function setupStripe(app: Express) {
           },
         ],
         mode: "subscription",
-        success_url: `${process.env.SERVER_URL || "http://localhost:5000"}/upgrade?success=true`,
-        cancel_url: `${process.env.SERVER_URL || "http://localhost:5000"}/upgrade?canceled=true`,
+        success_url: req.body.successUrl || `${process.env.SERVER_URL || "http://localhost:5000"}/subscription/success`,
+        cancel_url: req.body.cancelUrl || `${process.env.SERVER_URL || "http://localhost:5000"}/subscription/upgrade`,
         metadata: {
           userId: user.id.toString(),
         },
