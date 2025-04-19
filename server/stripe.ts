@@ -606,6 +606,94 @@ export function setupStripe(app: Express) {
       customerId: user.stripeCustomerId,
     });
   });
+  
+  // Sync subscription data with Stripe
+  app.post("/api/subscription/sync", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+    
+    if (!stripe) {
+      return res.status(503).json({ message: "Stripe is not configured" });
+    }
+    
+    try {
+      const user = req.user;
+      console.log(`Syncing subscription for user ${user.id} (${user.email})`);
+      
+      // Step 1: Find this user's customer in Stripe by email
+      const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+      
+      if (customers.data.length === 0) {
+        console.log(`No Stripe customer found for email ${user.email}`);
+        // Reset subscription data if no customer found
+        await storage.updateUserStripeInfo(user.id, {
+          customerId: null,
+          subscriptionId: null
+        });
+        await storage.updateUserPlan(user.id, 'free');
+        
+        return res.json({
+          success: true,
+          message: "Reset subscription data - no customer found in Stripe",
+          plan: 'free',
+          subscriptionId: null,
+          customerId: null
+        });
+      }
+      
+      const customer = customers.data[0];
+      console.log(`Found Stripe customer: ${customer.id}`);
+      
+      // Step 2: Find active subscriptions for this customer
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customer.id,
+        status: 'active',
+        limit: 1
+      });
+      
+      // Update customer ID regardless of subscription status
+      await storage.updateUserStripeInfo(user.id, {
+        customerId: customer.id,
+        subscriptionId: subscriptions.data.length > 0 ? subscriptions.data[0].id : null
+      });
+      
+      if (subscriptions.data.length === 0) {
+        console.log(`No active subscription found for customer ${customer.id}`);
+        // Set to free plan if no active subscription
+        await storage.updateUserPlan(user.id, 'free');
+        
+        return res.json({
+          success: true,
+          message: "Updated customer ID, no active subscription found",
+          plan: 'free',
+          subscriptionId: null,
+          customerId: customer.id
+        });
+      }
+      
+      // Step 3: Update user with correct subscription data
+      const subscription = subscriptions.data[0];
+      console.log(`Found active subscription: ${subscription.id} with status: ${subscription.status}`);
+      
+      // Update to paid plan
+      await storage.updateUserPlan(user.id, 'paid');
+      
+      // Get updated user
+      const updatedUser = await storage.getUser(user.id);
+      
+      return res.json({
+        success: true,
+        message: "Successfully synchronized with Stripe",
+        plan: updatedUser?.plan || 'paid',
+        subscriptionId: subscription.id,
+        customerId: customer.id
+      });
+    } catch (error: any) {
+      console.error("Error syncing subscription:", error);
+      return res.status(500).json({ message: error.message });
+    }
+  });
 
   // Cancel subscription
   app.post("/api/cancel-subscription", async (req, res) => {

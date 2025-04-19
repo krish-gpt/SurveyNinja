@@ -10,6 +10,7 @@ type SubscriptionContextType = {
   error: Error | null;
   createSubscriptionMutation: any;
   cancelSubscriptionMutation: any;
+  syncSubscriptionMutation: any;
 };
 
 type SubscriptionData = {
@@ -25,7 +26,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   
   const {
-    data: subscription,
+    data: subscription = null,
     error,
     isLoading,
   } = useQuery<SubscriptionData | null>({
@@ -78,6 +79,28 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     },
   });
   
+  const syncSubscriptionMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/subscription/sync");
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: "Subscription synchronized",
+        description: data.message || "Your subscription details have been updated",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Synchronization failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
   return (
     <SubscriptionContext.Provider
       value={{
@@ -86,6 +109,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         error,
         createSubscriptionMutation,
         cancelSubscriptionMutation,
+        syncSubscriptionMutation,
       }}
     >
       {children}
