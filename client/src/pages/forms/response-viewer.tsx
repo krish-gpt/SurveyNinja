@@ -73,8 +73,11 @@ export default function ResponseViewer() {
     enabled: !!user && !!id,
   });
   
+  // Provide default values to prevent undefined access
   const responses = responsesData?.responses || [];
-  const isPlanLimited = user?.plan === "free" && responsesData?.total > responsesData?.limit;
+  const totalResponses = responsesData?.total || 0;
+  const responseLimit = responsesData?.limit || 0;
+  const isPlanLimited = user?.plan === "free" && totalResponses > responseLimit;
   
   // Function to prepare data for charts
   const prepareChartData = (questionId: string) => {
@@ -239,7 +242,7 @@ export default function ResponseViewer() {
               <AlertTriangle className="h-4 w-4 text-yellow-800" />
               <AlertTitle className="text-yellow-800">Free Plan Limitation</AlertTitle>
               <AlertDescription className="text-yellow-700">
-                You're viewing {responsesData?.limit} of {responsesData?.total} responses.{" "}
+                You're viewing {responseLimit} of {totalResponses} responses.{" "}
                 <a href="/upgrade" className="font-medium underline text-yellow-800 hover:text-yellow-900">
                   Upgrade to our Pro plan
                 </a>{" "}
