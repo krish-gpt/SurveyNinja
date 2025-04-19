@@ -430,6 +430,49 @@ export function setupStripe(app: Express) {
     }
   });
 
+  // Create checkout session for subscription
+  app.post('/api/create-checkout-session', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+
+    try {
+      const user = req.user;
+      
+      // Create a new checkout session
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        mode: 'subscription',
+        line_items: [
+          {
+            price: SUBSCRIPTION_PRICE_ID,
+            quantity: 1,
+          },
+        ],
+        success_url: req.body.successUrl || `${req.headers.origin}/subscription/success`,
+        cancel_url: req.body.cancelUrl || `${req.headers.origin}/subscription/upgrade`,
+        customer_email: user.email,
+        client_reference_id: user.id.toString(),
+        subscription_data: {
+          metadata: {
+            userId: user.id.toString(),
+          },
+        },
+        metadata: {
+          userId: user.id.toString(),
+        },
+      });
+
+      res.status(200).json({ sessionId: session.id });
+    } catch (error) {
+      console.error('Failed to create checkout session:', error);
+      res.status(500).json({ 
+        message: 'Could not create checkout session',
+        error: error.message
+      });
+    }
+  });
+
   // Get subscription status
   app.get('/api/subscription', async (req, res) => {
     if (!req.isAuthenticated()) {

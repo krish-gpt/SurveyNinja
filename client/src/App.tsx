@@ -14,7 +14,9 @@ import ResponseViewer from "@/pages/forms/response-viewer";
 import ResponsesPage from "@/pages/responses";
 import ResponseSubmitted from "@/pages/response-submitted";
 import Upgrade from "@/pages/subscription/upgrade";
+import SubscriptionSuccess from "@/pages/subscription/success";
 import { AuthProvider } from "@/hooks/use-auth";
+import { SubscriptionProvider } from "@/hooks/use-subscription";
 import { ProtectedRoute } from "@/lib/protected-route";
 
 function Router() {
@@ -29,7 +31,8 @@ function Router() {
       <ProtectedRoute path="/responses" component={ResponsesPage} />
       <Route path="/form/:id" component={FormView} />
       <Route path="/response-submitted" component={ResponseSubmitted} />
-      <ProtectedRoute path="/upgrade" component={Upgrade} />
+      <ProtectedRoute path="/subscription/upgrade" component={Upgrade} />
+      <ProtectedRoute path="/subscription/success" component={SubscriptionSuccess} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -40,10 +43,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light">
         <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <SubscriptionProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </SubscriptionProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
