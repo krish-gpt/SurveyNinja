@@ -99,6 +99,18 @@ export function setupStripe(app: Express) {
         expand: ['latest_invoice.payment_intent'],
       });
 
+      console.log("Created subscription:", {
+        id: subscription.id,
+        status: subscription.status,
+        hasInvoice: !!subscription.latest_invoice,
+        hasPaymentIntent: !!(typeof subscription.latest_invoice !== 'string' && 
+                           subscription.latest_invoice?.payment_intent),
+        clientSecret: typeof subscription.latest_invoice !== 'string' && 
+                    subscription.latest_invoice?.payment_intent &&
+                    typeof subscription.latest_invoice.payment_intent !== 'string' ? 
+                    subscription.latest_invoice.payment_intent.client_secret : null
+      });
+
       // Update user with Stripe info - only store IDs, 
       // but don't change plan status until webhook confirms payment success
       await storage.updateUserStripeInfo(user.id, {
@@ -107,10 +119,16 @@ export function setupStripe(app: Express) {
         // Note: plan will remain 'free' until payment confirmed via webhook
       });
 
+      // Extract client secret safely
+      const clientSecret = typeof subscription.latest_invoice !== 'string' && 
+                         subscription.latest_invoice?.payment_intent &&
+                         typeof subscription.latest_invoice.payment_intent !== 'string' ? 
+                         subscription.latest_invoice.payment_intent.client_secret : null;
+
       // Return the client secret
       res.json({
         subscriptionId: subscription.id,
-        clientSecret: subscription.latest_invoice?.payment_intent?.client_secret,
+        clientSecret: clientSecret,
       });
     } catch (error: any) {
       console.error("Stripe error:", error);

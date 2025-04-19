@@ -134,13 +134,26 @@ export default function Upgrade() {
   
   useEffect(() => {
     if (user && user.plan !== "paid" && !clientSecret) {
+      console.log("Creating subscription session...");
       // Create subscription session
       apiRequest("POST", "/api/create-subscription")
         .then((res) => res.json())
         .then((data) => {
-          setClientSecret(data.clientSecret);
+          console.log("Subscription session created:", data);
+          if (data.clientSecret) {
+            setClientSecret(data.clientSecret);
+            console.log("Client secret set");
+          } else {
+            console.error("No client secret returned from server");
+            toast({
+              title: "Payment setup issue",
+              description: "Could not initialize payment form. Please try again later.",
+              variant: "destructive",
+            });
+          }
         })
         .catch((error) => {
+          console.error("Failed to initialize payment:", error);
           toast({
             title: "Failed to initialize payment",
             description: error.message,
