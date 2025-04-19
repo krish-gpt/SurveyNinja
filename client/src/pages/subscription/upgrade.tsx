@@ -20,9 +20,10 @@ const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
 
 export default function UpgradePage() {
   const { user } = useAuth();
-  const { subscription, syncSubscriptionMutation } = useSubscription();
+  const { subscription, syncSubscriptionMutation, cancelSubscriptionMutation } = useSubscription();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isDowngrading, setIsDowngrading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   
@@ -81,6 +82,26 @@ export default function UpgradePage() {
       setIsLoading(false);
     }
   };
+  
+  const handleDowngrade = async () => {
+    if (!window.confirm("Are you sure you want to downgrade to the Free plan? You will lose access to premium features and any data exceeding free plan limits may become inaccessible.")) {
+      return;
+    }
+    
+    setIsDowngrading(true);
+    try {
+      await cancelSubscriptionMutation.mutateAsync();
+      toast({
+        title: "Plan Downgraded",
+        description: "You have been successfully downgraded to the Free plan.",
+      });
+    } catch (error) {
+      // Error handling is done in the mutation itself
+      console.error("Downgrade error:", error);
+    } finally {
+      setIsDowngrading(false);
+    }
+  };
 
   // Features lists
   const freeFeatures = [
@@ -129,9 +150,21 @@ export default function UpgradePage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" disabled className="w-full">
-                Current Plan
-              </Button>
+              {subscription?.plan === 'free' ? (
+                <div className="w-full space-y-2">
+                  <div className="flex items-center justify-center bg-primary/10 text-primary rounded-md py-1.5 px-2 text-sm">
+                    Current Plan
+                  </div>
+                </div>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  disabled 
+                  className="w-full"
+                >
+                  Basic Plan
+                </Button>
+              )}
             </CardFooter>
           </Card>
 
@@ -159,9 +192,26 @@ export default function UpgradePage() {
             </CardContent>
             <CardFooter>
               {subscription?.plan === 'paid' ? (
-                <Button variant="outline" disabled className="w-full">
-                  Current Plan
-                </Button>
+                <div className="w-full space-y-2">
+                  <div className="flex items-center justify-center bg-primary/10 text-primary rounded-md py-1.5 px-2 text-sm">
+                    Current Plan
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleDowngrade} 
+                    disabled={isDowngrading}
+                    className="w-full text-destructive border-destructive hover:bg-destructive/10"
+                  >
+                    {isDowngrading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Downgrading...
+                      </>
+                    ) : (
+                      'Downgrade to Free'
+                    )}
+                  </Button>
+                </div>
               ) : (
                 <Button 
                   onClick={handleUpgrade} 
