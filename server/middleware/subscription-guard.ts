@@ -1,48 +1,46 @@
-import { Request, Response, NextFunction } from "express";
-import { storage } from "../storage";
-import { verifySubscriptionStatus } from "../stripe";
+import { Request, Response, NextFunction } from 'express';
+import { storage } from '../storage';
+import { verifySubscriptionStatus } from '../stripe';
 
 /**
  * Middleware to check if user is on a paid plan
  * If not, prevents access to premium features
  */
 export const requirePaidPlan = async (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ message: "You must be logged in" });
-  }
-
-  const user = req.user;
-  
   try {
-    // If the user has a subscription ID, verify it's still active
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    const user = req.user;
+    
+    // If user has subscription ID, verify status is current with Stripe
     if (user.stripeSubscriptionId) {
       const verifiedPlan = await verifySubscriptionStatus(
-        user.id,
-        user.stripeSubscriptionId,
+        user.id, 
+        user.stripeSubscriptionId, 
         user.plan
       );
       
-      // If plan verification changed the status, refresh the user object
-      if (verifiedPlan !== user.plan) {
-        const updatedUser = await storage.getUser(user.id);
-        if (updatedUser) {
-          req.user = updatedUser;
-        }
+      // Use the verified plan status for authorization
+      if (verifiedPlan !== 'paid') {
+        return res.status(403).json({ 
+          message: "This feature requires a Pro plan subscription",
+          plan: verifiedPlan
+        });
       }
-    }
-    
-    // After verification, check if user is on paid plan
-    if (req.user.plan !== "paid") {
-      return res.status(403).json({
-        message: "This feature requires a paid subscription",
-        upgradeRequired: true
+    } else if (user.plan !== 'paid') {
+      // No subscription ID and not on paid plan
+      return res.status(403).json({ 
+        message: "This feature requires a Pro plan subscription",
+        plan: user.plan
       });
     }
-    
+
     next();
   } catch (error) {
     console.error("Error in subscription guard:", error);
-    return res.status(500).json({ message: "Error checking subscription status" });
+    res.status(500).json({ message: "Error verifying subscription status" });
   }
 };
 
@@ -50,51 +48,49 @@ export const requirePaidPlan = async (req: Request, res: Response, next: NextFun
  * Middleware to check form and response limits based on plan
  */
 export const checkPlanLimits = async (req: Request, res: Response, next: NextFunction) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ message: "You must be logged in" });
-  }
-
-  const user = req.user;
-  const path = req.path;
-  
   try {
-    // Form creation limit check
-    if (path === '/api/forms' && req.method === 'POST') {
-      const formCount = await storage.getFormsCount(user.id);
-      
-      // Limit free users to 10 forms
-      if (user.plan !== 'paid' && formCount >= 10) {
-        return res.status(403).json({
-          message: "You've reached the maximum number of forms allowed on the free plan",
-          upgradeRequired: true
-        });
-      }
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
     }
+
+    const user = req.user;
+    const action = req.body.action || 'view';
     
-    // Response creation limit check
-    if (path.includes('/api/forms') && path.includes('/responses') && req.method === 'POST') {
-      const formId = parseInt(path.split('/')[3], 10);
+    // Free plan limits
+    const FREE_PLAN_FORM_LIMIT = 10;
+    const FREE_PLAN_RESPONSE_LIMIT = 10;
+    
+    // Only check limits for free plan users
+    if (user.plan === 'free') {
+      // Creating a new form
+      if (action === 'create_form') {
+        const formsCount = await storage.getFormsCount(user.id);
+        if (formsCount >= FREE_PLAN_FORM_LIMIT) {
+          return res.status(403).json({
+            message: `Free plan is limited to ${FREE_PLAN_FORM_LIMIT} forms. Upgrade to Pro for unlimited forms.`,
+            limit: FREE_PLAN_FORM_LIMIT,
+            count: formsCount
+          });
+        }
+      }
       
-      if (!isNaN(formId)) {
-        const form = await storage.getForm(formId);
-        
-        if (form) {
-          const responseCount = await storage.getResponsesCount(form.id);
-          
-          // Limit free users to 10 responses per form
-          if (user.plan !== 'paid' && responseCount >= 10) {
-            return res.status(403).json({
-              message: "You've reached the maximum number of responses allowed per form on the free plan",
-              upgradeRequired: true
-            });
-          }
+      // Creating a new response
+      if (action === 'create_response' && req.params.formId) {
+        const formId = parseInt(req.params.formId, 10);
+        const responsesCount = await storage.getResponsesCount(formId);
+        if (responsesCount >= FREE_PLAN_RESPONSE_LIMIT) {
+          return res.status(403).json({
+            message: `Free plan is limited to ${FREE_PLAN_RESPONSE_LIMIT} responses per form. Upgrade to Pro for more.`,
+            limit: FREE_PLAN_RESPONSE_LIMIT,
+            count: responsesCount
+          });
         }
       }
     }
     
     next();
   } catch (error) {
-    console.error("Error in plan limits check:", error);
-    return res.status(500).json({ message: "Error checking plan limits" });
+    console.error("Error checking plan limits:", error);
+    res.status(500).json({ message: "Error checking usage limits" });
   }
 };

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,12 +11,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Menu, Bell, User, LogOut, Settings, CreditCard } from "lucide-react";
+import { 
+  ChevronDown, 
+  Menu, 
+  Bell, 
+  User, 
+  LogOut, 
+  Settings, 
+  CreditCard, 
+  Sparkles 
+} from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 
 export default function Navbar() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
+  const { subscription } = useSubscription();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const handleLogout = () => {
@@ -75,6 +87,26 @@ export default function Navbar() {
           
           {/* User menu (desktop) */}
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
+            {/* Upgrade button (only for free plan) */}
+            {subscription && subscription.plan === 'free' && (
+              <Button variant="outline" size="sm" className="mr-3 text-xs" asChild>
+                <Link href="/subscription/upgrade" className="flex items-center">
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                  Upgrade
+                </Link>
+              </Button>
+            )}
+            
+            {/* Plan badge */}
+            {subscription && (
+              <Badge 
+                variant={subscription.plan === 'paid' ? "default" : "outline"} 
+                className="mr-3"
+              >
+                {subscription.plan === 'paid' ? 'Pro Plan' : 'Free Plan'} 
+              </Badge>
+            )}
+            
             <Button variant="ghost" size="icon" className="mr-2">
               <Bell className="h-5 w-5" />
             </Button>
@@ -95,7 +127,7 @@ export default function Navbar() {
                   <span>Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/upgrade" className="flex items-center w-full">
+                  <Link href="/subscription/upgrade" className="flex items-center w-full">
                     <CreditCard className="mr-2 h-4 w-4" />
                     <span>Subscription</span>
                   </Link>
@@ -144,13 +176,34 @@ export default function Navbar() {
                     ))}
                     
                     <div className="pt-4 border-t border-gray-200">
+                      {/* Mobile subscription status and upgrade button */}
+                      <div className="px-3 py-2 flex items-center justify-between">
+                        <div className="flex items-center">
+                          <CreditCard className="h-4 w-4 mr-2" />
+                          <span className="text-sm">
+                            {subscription?.plan === 'paid' ? 'Pro Plan' : 'Free Plan'}
+                          </span>
+                        </div>
+                        
+                        {subscription?.plan === 'free' && (
+                          <Link 
+                            href="/subscription/upgrade"
+                            className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-md font-medium"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            Upgrade
+                          </Link>
+                        )}
+                      </div>
+                      
                       <Link 
-                        href="/upgrade"
-                        className="px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 block"
+                        href="/subscription/upgrade"
+                        className="px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 block mt-2"
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        Subscription
+                        Manage Subscription
                       </Link>
+                      
                       <button
                         className="mt-4 w-full px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 text-left"
                         onClick={() => {
