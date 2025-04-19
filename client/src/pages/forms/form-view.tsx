@@ -38,9 +38,14 @@ export default function FormView() {
         title: "Response submitted",
         description: "Thank you for your submission!",
       });
+      // Store form info in sessionStorage for the success page
+      if (form) {
+        sessionStorage.setItem("submittedFormTitle", form.title);
+        sessionStorage.setItem("submittedFormId", id);
+      }
       // Reset form
       setFormData({});
-      // Show a success state or redirect
+      // Redirect to success page
       setLocation("/response-submitted");
     },
     onError: (error: Error) => {

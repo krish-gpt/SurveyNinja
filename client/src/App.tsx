@@ -11,6 +11,7 @@ import FormsPage from "@/pages/forms";
 import FormBuilder from "@/pages/forms/form-builder";
 import FormView from "@/pages/forms/form-view";
 import ResponseViewer from "@/pages/forms/response-viewer";
+import ResponseSubmitted from "@/pages/response-submitted";
 import Upgrade from "@/pages/subscription/upgrade";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -25,6 +26,7 @@ function Router() {
       <ProtectedRoute path="/forms/:id/edit" component={FormBuilder} />
       <ProtectedRoute path="/forms/:id/responses" component={ResponseViewer} />
       <Route path="/form/:id" component={FormView} />
+      <Route path="/response-submitted" component={ResponseSubmitted} />
       <ProtectedRoute path="/upgrade" component={Upgrade} />
       <Route component={NotFound} />
     </Switch>
