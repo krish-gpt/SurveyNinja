@@ -59,10 +59,12 @@ export function setupStripe(app: Express) {
         expand: ['latest_invoice.payment_intent'],
       });
 
-      // Update user with Stripe info
+      // Update user with Stripe info - only store IDs, 
+      // but don't change plan status until webhook confirms payment success
       await storage.updateUserStripeInfo(user.id, {
         customerId,
         subscriptionId: subscription.id,
+        // Note: plan will remain 'free' until payment confirmed via webhook
       });
 
       // Return the client secret
@@ -103,22 +105,52 @@ export function setupStripe(app: Express) {
     }
 
     // Handle the event
+    console.log(`Webhook received: ${event.type}`);
+    
     switch (event.type) {
+      // Payment success events
+      case 'payment_intent.succeeded':
+        // Payment was successful, but we'll wait for the subscription status to be updated
+        console.log('PaymentIntent was successful!');
+        break;
+        
+      // Subscription events
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
         const subscription = event.data.object;
         const customerId = subscription.customer;
+        const subscriptionStatus = subscription.status;
         
-        // Find user by Stripe customer ID
-        const users = Array.from((storage as any).users.values());
-        const user = users.find(u => u.stripeCustomerId === customerId);
+        console.log(`Subscription status: ${subscriptionStatus} for customer: ${customerId}`);
         
-        if (user) {
-          if (subscription.status === 'active' || subscription.status === 'trialing') {
-            await storage.updateUserPlan(user.id, 'paid');
-          } else if (subscription.status === 'canceled' || subscription.status === 'unpaid') {
-            await storage.updateUserPlan(user.id, 'free');
+        try {
+          // Find user by Stripe customer ID
+          const user = await storage.getUserByStripeCustomerId(customerId);
+          
+          if (user) {
+            if (subscriptionStatus === 'active' || subscriptionStatus === 'trialing') {
+              // Update to paid plan only when subscription is confirmed active
+              console.log(`Updating user ${user.id} to paid plan`);
+              await storage.updateUserPlan(user.id, 'paid');
+              
+              // Also update payment date
+              const currentDate = new Date();
+              await storage.updateUserStripeInfo(user.id, {
+                customerId: user.stripeCustomerId,
+                subscriptionId: user.stripeSubscriptionId,
+                paymentDate: currentDate
+              });
+              
+            } else if (subscriptionStatus === 'canceled' || subscriptionStatus === 'unpaid' || 
+                       subscriptionStatus === 'incomplete_expired') {
+              console.log(`Subscription inactive (${subscriptionStatus}), setting user ${user.id} to free plan`);
+              await storage.updateUserPlan(user.id, 'free');
+            }
+          } else {
+            console.error(`No user found for Stripe customer ID: ${customerId}`);
           }
+        } catch (error) {
+          console.error('Error processing subscription webhook:', error);
         }
         break;
         
@@ -126,12 +158,40 @@ export function setupStripe(app: Express) {
         const canceledSubscription = event.data.object;
         const canceledCustomerId = canceledSubscription.customer;
         
-        // Find user by Stripe customer ID
-        const allUsers = Array.from((storage as any).users.values());
-        const subscribedUser = allUsers.find(u => u.stripeCustomerId === canceledCustomerId);
+        console.log(`Subscription deleted for customer: ${canceledCustomerId}`);
         
-        if (subscribedUser) {
-          await storage.updateUserPlan(subscribedUser.id, 'free');
+        try {
+          // Find user by Stripe customer ID
+          const subscribedUser = await storage.getUserByStripeCustomerId(canceledCustomerId);
+          
+          if (subscribedUser) {
+            console.log(`Setting user ${subscribedUser.id} to free plan due to subscription deletion`);
+            await storage.updateUserPlan(subscribedUser.id, 'free');
+          } else {
+            console.error(`No user found for Stripe customer ID: ${canceledCustomerId}`);
+          }
+        } catch (error) {
+          console.error('Error processing subscription deletion webhook:', error);
+        }
+        break;
+      
+      // Failed payment events
+      case 'invoice.payment_failed':
+        const failedInvoice = event.data.object;
+        const failedCustomerId = failedInvoice.customer;
+        
+        console.log(`Payment failed for customer: ${failedCustomerId}`);
+        
+        try {
+          // Find user by Stripe customer ID and downgrade to free
+          const user = await storage.getUserByStripeCustomerId(failedCustomerId);
+          
+          if (user) {
+            console.log(`Payment failed, setting user ${user.id} to free plan`);
+            await storage.updateUserPlan(user.id, 'free');
+          }
+        } catch (error) {
+          console.error('Error processing payment failure webhook:', error);
         }
         break;
     }

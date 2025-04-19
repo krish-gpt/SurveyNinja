@@ -13,6 +13,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserPlan(userId: number, plan: string): Promise<User>;
   updateUserStripeInfo(userId: number, stripeInfo: { customerId: string, subscriptionId: string, paymentDate?: Date }): Promise<User>;
@@ -62,6 +63,11 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
   }
+  
+  async getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.stripeCustomerId, stripeCustomerId));
+    return user;
+  }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db
@@ -92,14 +98,23 @@ export class DatabaseStorage implements IStorage {
     userId: number, 
     stripeInfo: { customerId: string, subscriptionId: string, paymentDate?: Date }
   ): Promise<User> {
+    // Create update object with required fields
+    const updateData: any = {
+      stripeCustomerId: stripeInfo.customerId,
+      stripeSubscriptionId: stripeInfo.subscriptionId
+    };
+    
+    // Only update payment date if provided
+    if (stripeInfo.paymentDate) {
+      updateData.paymentDate = stripeInfo.paymentDate;
+    }
+    
+    // We don't update the plan here - plan changes should only happen via updateUserPlan
+    // based on webhook confirmation
+    
     const [updatedUser] = await db
       .update(users)
-      .set({
-        stripeCustomerId: stripeInfo.customerId,
-        stripeSubscriptionId: stripeInfo.subscriptionId,
-        paymentDate: stripeInfo.paymentDate || new Date(),
-        plan: "paid"
-      })
+      .set(updateData)
       .where(eq(users.id, userId))
       .returning();
 
