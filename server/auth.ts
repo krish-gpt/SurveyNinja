@@ -7,7 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { insertUserSchema } from "@shared/schema";
-import { verifySubscriptionStatus } from "./stripe";
+import { verifySubscriptionStatus, stripe } from "./stripe";
 
 /**
  * Synchronizes a user's subscription data with Stripe
@@ -20,14 +20,13 @@ async function syncSubscriptionWithStripe(user: Express.User): Promise<any> {
       throw new Error('User email not available for sync');
     }
     
-    // Use the imported stripe instance
-    if (!stripeInstance) {
+    // Use the stripe instance imported from stripe.ts
+    if (!stripe) {
       throw new Error('Stripe not initialized');
     }
-    const fetchStripe = stripeInstance;
     
     // Find customer in Stripe
-    const customers = await fetchStripe.customers.list({ 
+    const customers = await stripe.customers.list({ 
       email: user.email, 
       limit: 1 
     });
@@ -50,7 +49,7 @@ async function syncSubscriptionWithStripe(user: Express.User): Promise<any> {
     const customer = customers.data[0];
     
     // Find active subscriptions
-    const subscriptions = await fetchStripe.subscriptions.list({
+    const subscriptions = await stripe.subscriptions.list({
       customer: customer.id,
       status: 'active',
       limit: 1
