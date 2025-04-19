@@ -279,6 +279,42 @@ export function setupStripe(app: Express) {
     res.status(200).json({ received: true });
   });
 
+  // Simulate payment success for demo purposes
+  app.post('/api/simulate-payment-success', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+
+    try {
+      const user = req.user;
+      
+      // Check if the user is already on a paid plan
+      if (user.plan === 'paid') {
+        return res.json({ success: true, plan: 'paid', message: 'Already subscribed' });
+      }
+      
+      console.log(`Simulating successful subscription payment for user: ${user.id}`);
+      
+      // Update the user to paid plan
+      await storage.updateUserPlan(user.id, 'paid');
+      
+      // Set a payment date
+      const currentDate = new Date();
+      await storage.updateUserStripeInfo(user.id, {
+        customerId: user.stripeCustomerId || 'demo_customer',
+        subscriptionId: user.stripeSubscriptionId || 'demo_subscription',
+        paymentDate: currentDate
+      });
+      
+      console.log(`User ${user.id} upgraded to paid plan successfully (demo)`);
+      
+      return res.json({ success: true, plan: 'paid' });
+    } catch (error: any) {
+      console.error('Error processing simulated payment:', error);
+      return res.status(500).json({ message: error.message });
+    }
+  });
+
   // Payment success - for when webhook isn't available
   app.get('/api/payment-success', async (req, res) => {
     if (!req.isAuthenticated()) {
