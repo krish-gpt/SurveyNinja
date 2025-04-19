@@ -172,7 +172,7 @@ export function setupStripe(app: Express) {
       }
 
       // Cancel the subscription
-      await stripe.subscriptions.del(user.stripeSubscriptionId);
+      await stripe.subscriptions.cancel(user.stripeSubscriptionId);
 
       // Update user to free plan
       await storage.updateUserPlan(user.id, 'free');
