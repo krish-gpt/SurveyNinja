@@ -5,6 +5,14 @@ import { setupAuth } from "./auth";
 import { setupStripe, verifySubscriptionStatus } from "./stripe";
 import { insertFormSchema, insertResponseSchema, FormElement } from "@shared/schema";
 import { requirePaidPlan, checkPlanLimits } from "./middleware/subscription-guard";
+import Stripe from "stripe";
+
+// Initialize Stripe with API key
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2023-08-16" as any,
+    })
+  : null;
 
 // Utility functions for premium features
 function groupResponsesByDate(responses: any[]) {
@@ -79,7 +87,7 @@ function generateFieldAnalytics(responses: any[], form: any) {
       completionRate,
       responseCount: filledCount,
       // Add field-specific analytics based on type
-      ...(fieldType === 'select' || fieldType === 'radio' 
+      ...(fieldType === 'dropdown' || fieldType === 'multiple-choice' 
         ? { valueDistribution: calculateValueDistribution(values) }
         : {})
     };
@@ -574,6 +582,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.message,
         stack: process.env.NODE_ENV === "development" ? error.stack : undefined
       });
+    }
+  });
+  
+  // Endpoint to get or create a subscription
+  app.post("/api/get-or-create-subscription", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+
+    let user = req.user;
+
+    // If user already has a subscription, retrieve it
+    if (user.stripeSubscriptionId) {
+      try {
+        if (!stripe) {
+          return res.status(503).json({ message: "Stripe is not configured" });
+        }
+        
+        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
+
+        if (subscription.status === "active" || subscription.status === "trialing") {
+          return res.json({
+            subscriptionId: subscription.id,
+            status: subscription.status,
+            alreadyActive: true
+          });
+        }
+        
+        // If subscription exists but isn't active, we'll create a new one below
+      } catch (error) {
+        console.error("Error retrieving existing subscription:", error);
+        // Fall through to create a new subscription
+      }
+    }
+    
+    try {
+      if (!stripe) {
+        return res.status(503).json({ message: "Stripe is not configured" });
+      }
+
+      if (!process.env.STRIPE_PRICE_ID) {
+        return res.status(503).json({ message: "Stripe price ID is not configured" });
+      }
+      
+      if (!user.email) {
+        return res.status(400).json({ message: "User email is required" });
+      }
+
+      // Create or retrieve customer
+      let customerId = user.stripeCustomerId;
+
+      if (!customerId) {
+        // Create new customer
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: user.username,
+          metadata: {
+            userId: user.id.toString(),
+          },
+        });
+
+        customerId = customer.id;
+        
+        // Update user with customer ID
+        user = await storage.updateUserStripeInfo(user.id, {
+          customerId: customer.id,
+          subscriptionId: null,
+        });
+      }
+
+      // Create the subscription
+      const subscription = await stripe.subscriptions.create({
+        customer: customerId,
+        items: [{ price: process.env.STRIPE_PRICE_ID }],
+        payment_behavior: 'default_incomplete',
+        expand: ['latest_invoice.payment_intent'],
+      });
+
+      // Store subscription ID but don't change plan yet (webhook will do that on successful payment)
+      await storage.updateUserStripeInfo(user.id, {
+        customerId,
+        subscriptionId: subscription.id,
+      });
+
+      // Get client secret for payment confirmation
+      let clientSecret = null;
+      
+      // TypeScript workaround for latest_invoice handling
+      const latestInvoice = subscription.latest_invoice;
+      if (typeof latestInvoice === 'object' && latestInvoice !== null) {
+        const paymentIntent = latestInvoice.payment_intent;
+        if (typeof paymentIntent === 'object' && paymentIntent !== null) {
+          clientSecret = paymentIntent.client_secret;
+        }
+      }
+
+      res.json({
+        subscriptionId: subscription.id,
+        clientSecret,
+        status: subscription.status,
+      });
+    } catch (error: any) {
+      console.error("Error creating subscription:", error);
+      res.status(500).json({ message: error.message });
     }
   });
 
