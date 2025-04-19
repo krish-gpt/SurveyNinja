@@ -28,6 +28,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ShareFormModal from "@/components/share-form-modal";
+import { FormSummary, UserStats } from "@/types/form-types";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -35,22 +36,7 @@ export default function Dashboard() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
 
-  // Define types for form and stats
-  interface FormSummary {
-    id: number;
-    title: string;
-    description?: string;
-    responseCount: number;
-    createdAt: string;
-    updatedAt: string;
-  }
-  
-  interface UserStats {
-    formCount: number;
-    maxForms: number;
-    totalResponses: number;
-    maxResponses: number;
-  }
+  // Using shared type definitions from form-types.ts
 
   // Fetch forms with default empty array to prevent "possibly undefined" errors
   const { data: forms = [], isLoading: isLoadingForms } = useQuery<FormSummary[]>({
