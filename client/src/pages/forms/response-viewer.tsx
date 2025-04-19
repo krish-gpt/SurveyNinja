@@ -2,6 +2,11 @@ import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Form as FormType, FormElement } from "@shared/schema";
+
+// Extend FormType with the correct elements type
+interface FormWithElements extends FormType {
+  elements: FormElement[];
+}
 import { useAuth } from "@/hooks/use-auth";
 import Navbar from "@/components/navbar";
 import { Button } from "@/components/ui/button";
@@ -50,13 +55,20 @@ export default function ResponseViewer() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Fetch form
-  const { data: form, isLoading: isLoadingForm } = useQuery<FormType>({
+  const { data: form, isLoading: isLoadingForm } = useQuery<FormWithElements>({
     queryKey: [`/api/forms/${id}`],
     enabled: !!user && !!id,
   });
   
+  // Define the expected response data structure
+  interface ResponsesData {
+    responses: any[];
+    total: number;
+    limit: number;
+  }
+  
   // Fetch responses
-  const { data: responsesData, isLoading: isLoadingResponses } = useQuery({
+  const { data: responsesData, isLoading: isLoadingResponses } = useQuery<ResponsesData>({
     queryKey: [`/api/forms/${id}/responses`],
     enabled: !!user && !!id,
   });
@@ -68,7 +80,7 @@ export default function ResponseViewer() {
   const prepareChartData = (questionId: string) => {
     if (!responses || responses.length === 0) return [];
     
-    const element = form?.elements.find((el: any) => el.id === questionId);
+    const element = form?.elements.find((el: FormElement) => el.id === questionId);
     if (!element) return [];
     
     if (["multiple-choice", "checkbox", "dropdown"].includes(element.type)) {
@@ -132,7 +144,7 @@ export default function ResponseViewer() {
     if (!responses || responses.length === 0) return;
     
     // Prepare CSV data
-    const headers = ["Response ID", "Submission Date", ...form?.elements.map((el: any) => el.label) || []];
+    const headers = ["Response ID", "Submission Date", ...form?.elements.map((el: FormElement) => el.label) || []];
     
     const rows = responses.map((response: any) => {
       const rowData = [
@@ -140,7 +152,7 @@ export default function ResponseViewer() {
         new Date(response.createdAt).toLocaleString(),
       ];
       
-      form?.elements.forEach((element: any) => {
+      form?.elements.forEach((element: FormElement) => {
         const value = response.data[element.id];
         rowData.push(renderResponseValue(value));
       });
@@ -151,7 +163,7 @@ export default function ResponseViewer() {
     // Convert to CSV
     const csvContent = [
       headers.join(","),
-      ...rows.map(row => row.join(","))
+      ...rows.map((row: any[]) => row.join(","))
     ].join("\n");
     
     // Download the file
@@ -287,13 +299,13 @@ export default function ResponseViewer() {
                                   <p className="text-sm font-medium text-primary truncate">
                                     Anonymous User {index + 1}
                                   </p>
-                                  {form?.elements.some((el: any) => el.type === "rating" && response.data[el.id]) && (
+                                  {form?.elements.some((el: FormElement) => el.type === "rating" && response.data[el.id]) && (
                                     <p className="text-sm text-gray-500">
                                       Rating:{" "}
                                       <span className="font-medium">
                                         {form.elements
-                                          .filter((el: any) => el.type === "rating" && response.data[el.id])
-                                          .map((el: any) => `${response.data[el.id]}/${el.properties?.maxRating || 5}`)
+                                          .filter((el: FormElement) => el.type === "rating" && response.data[el.id])
+                                          .map((el: FormElement) => `${response.data[el.id]}/${el.properties?.maxRating || 5}`)
                                           .join(", ")}
                                       </span>
                                     </p>
@@ -334,7 +346,7 @@ export default function ResponseViewer() {
             </TabsContent>
             
             <TabsContent value="summary" className="space-y-6">
-              {form?.elements.map((element: any) => {
+              {form?.elements.map((element: FormElement) => {
                 const chartData = prepareChartData(element.id);
                 
                 return (
