@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { setupStripe, verifySubscriptionStatus } from "./stripe";
 import { insertFormSchema, insertResponseSchema } from "@shared/schema";
+import { requirePaidPlan, checkPlanLimits } from "./middleware/subscription-guard";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
