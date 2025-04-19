@@ -19,10 +19,24 @@ const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
 
 export default function UpgradePage() {
   const { user } = useAuth();
-  const { subscription } = useSubscription();
+  const { subscription, syncSubscriptionMutation } = useSubscription();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  
+  // Handle sync with Stripe
+  const handleSyncSubscription = async () => {
+    setSyncLoading(true);
+    try {
+      await syncSubscriptionMutation.mutateAsync();
+    } catch (error) {
+      // Error handling is done in the mutation itself
+      console.error("Sync error:", error);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
   const handleUpgrade = async () => {
     if (!stripePromise) {
@@ -181,7 +195,31 @@ export default function UpgradePage() {
         </div>
       )}
 
-      <div className="mt-10 text-center text-sm text-muted-foreground">
+      {/* Subscription Troubleshooting */}
+      <div className="mt-8 p-4 border border-gray-200 rounded-md">
+        <h3 className="font-medium text-lg mb-3">Subscription Troubleshooting</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          If you're experiencing issues with your subscription or you've paid but your plan status isn't reflecting correctly, 
+          try syncing your subscription details with Stripe.
+        </p>
+        <Button 
+          variant="outline" 
+          onClick={handleSyncSubscription} 
+          disabled={syncLoading}
+          className="w-full sm:w-auto"
+        >
+          {syncLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Syncing with Stripe...
+            </>
+          ) : (
+            'Sync Subscription Status'
+          )}
+        </Button>
+      </div>
+      
+      <div className="mt-6 text-center text-sm text-muted-foreground">
         <p>Payments securely processed by Stripe</p>
         <p className="mt-2">
           Having issues? <a href="#" className="underline">Contact support</a>
