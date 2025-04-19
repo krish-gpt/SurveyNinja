@@ -8,7 +8,7 @@ import Navbar from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, AlertCircle, Loader2, CheckCircle } from "lucide-react";
+import { Check, AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
@@ -22,24 +22,20 @@ function CheckoutForm() {
   const elements = useElements();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [redirectAfterPayment, setRedirectAfterPayment] = useState(false);
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   
   // Check URL for payment success
   useEffect(() => {
-    if (!stripe) return;
-    
     const query = new URLSearchParams(window.location.search);
     const paymentIntent = query.get('payment_intent');
     const redirectStatus = query.get('redirect_status');
     
-    // Show success message and update plan if payment succeeded
     if (paymentIntent && redirectStatus === 'succeeded') {
-      setPaymentSuccess(true);
       handlePaymentSuccess();
     }
-  }, [stripe]);
+  }, []);
   
   const handlePaymentSuccess = async () => {
     try {
@@ -58,6 +54,7 @@ function CheckoutForm() {
         });
         
         // Redirect to dashboard after 2 seconds
+        setRedirectAfterPayment(true);
         setTimeout(() => {
           setLocation('/');
         }, 2000);
@@ -103,19 +100,6 @@ function CheckoutForm() {
     }
   };
   
-  if (paymentSuccess) {
-    return (
-      <div className="bg-green-50 p-4 rounded-md border border-green-200 text-center">
-        <div className="flex justify-center mb-2">
-          <CheckCircle className="text-green-500 h-8 w-8" />
-        </div>
-        <h3 className="text-green-800 font-medium text-lg mb-1">Payment Successful!</h3>
-        <p className="text-green-700 mb-3">Your Pro subscription has been activated.</p>
-        <p className="text-sm text-green-600">Redirecting to dashboard...</p>
-      </div>
-    );
-  }
-
   return (
     <form onSubmit={handleSubmit}>
       <PaymentElement className="mb-6" />
