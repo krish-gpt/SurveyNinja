@@ -35,14 +35,32 @@ export default function Dashboard() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
 
-  // Fetch forms
-  const { data: forms, isLoading: isLoadingForms } = useQuery({
+  // Define types for form and stats
+  interface FormSummary {
+    id: number;
+    title: string;
+    description?: string;
+    responseCount: number;
+    createdAt: string;
+    updatedAt: string;
+  }
+  
+  interface UserStats {
+    formCount: number;
+    maxForms: number;
+    totalResponses: number;
+    maxResponses: number;
+  }
+
+  // Fetch forms with default empty array to prevent "possibly undefined" errors
+  const { data: forms = [], isLoading: isLoadingForms } = useQuery<FormSummary[]>({
     queryKey: ["/api/forms"],
     enabled: !!user,
   });
 
-  // Fetch stats
-  const { data: stats, isLoading: isLoadingStats } = useQuery({
+  // Fetch stats with default empty object to prevent "possibly undefined" errors
+  const { data: stats = { formCount: 0, maxForms: 0, totalResponses: 0, maxResponses: 0 }, 
+    isLoading: isLoadingStats } = useQuery<UserStats>({
     queryKey: ["/api/stats"],
     enabled: !!user,
   });
@@ -114,7 +132,7 @@ export default function Dashboard() {
                               <dl>
                                 <dt className="text-sm font-medium text-gray-500 truncate">Forms Created</dt>
                                 <dd className="text-lg font-medium text-gray-900">
-                                  {stats?.formCount} / {stats?.maxForms}
+                                  {stats.formCount} / {stats.maxForms}
                                 </dd>
                               </dl>
                             </div>
@@ -132,7 +150,7 @@ export default function Dashboard() {
                               <dl>
                                 <dt className="text-sm font-medium text-gray-500 truncate">Total Responses</dt>
                                 <dd className="text-lg font-medium text-gray-900">
-                                  {stats?.totalResponses} / {stats?.maxResponses}
+                                  {stats.totalResponses} / {stats.maxResponses}
                                 </dd>
                               </dl>
                             </div>
@@ -183,9 +201,9 @@ export default function Dashboard() {
                 </Card>
               ))}
             </div>
-          ) : forms?.length > 0 ? (
+          ) : (forms.length > 0) ? (
             <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {forms.map((form: any) => (
+              {forms.map((form: FormSummary) => (
                 <Card key={form.id} className="bg-white divide-y divide-gray-200">
                   <CardHeader className="px-4 py-5 sm:px-6 flex justify-between items-start">
                     <div>
