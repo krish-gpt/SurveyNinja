@@ -65,18 +65,10 @@ export default function UpgradePage() {
         throw new Error(errorData.message || 'Failed to create checkout session');
       }
       
-      const { sessionId } = await response.json();
+      const { url } = await response.json();
       
       // Redirect to Stripe Checkout
-      const stripe = await stripePromise;
-      if (stripe) {
-        const { error } = await stripe.redirectToCheckout({ sessionId });
-        if (error) {
-          throw new Error(error.message);
-        }
-      } else {
-        throw new Error('Stripe failed to initialize');
-      }
+      window.location.href = url;
     } catch (error: any) {
       console.error('Checkout error:', error);
       setCheckoutError(error.message || 'An unexpected error occurred');
