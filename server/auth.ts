@@ -9,6 +9,81 @@ import { User as SelectUser } from "@shared/schema";
 import { insertUserSchema } from "@shared/schema";
 import { verifySubscriptionStatus } from "./stripe";
 
+/**
+ * Synchronizes a user's subscription data with Stripe
+ * This makes an internal API call to the sync endpoint
+ * to leverage the existing synchronization logic
+ */
+async function syncSubscriptionWithStripe(user: Express.User): Promise<any> {
+  try {
+    if (!user.email) {
+      throw new Error('User email not available for sync');
+    }
+    
+    // Use the imported stripe instance
+    if (!stripeInstance) {
+      throw new Error('Stripe not initialized');
+    }
+    const fetchStripe = stripeInstance;
+    
+    // Find customer in Stripe
+    const customers = await fetchStripe.customers.list({ 
+      email: user.email, 
+      limit: 1 
+    });
+    
+    if (customers.data.length === 0) {
+      console.log(`No Stripe customer found for email ${user.email}`);
+      await storage.updateUserStripeInfo(user.id, {
+        customerId: null,
+        subscriptionId: null
+      });
+      await storage.updateUserPlan(user.id, 'free');
+      
+      return {
+        success: true,
+        message: "Reset subscription data - no customer found in Stripe",
+        plan: 'free'
+      };
+    }
+    
+    const customer = customers.data[0];
+    
+    // Find active subscriptions
+    const subscriptions = await fetchStripe.subscriptions.list({
+      customer: customer.id,
+      status: 'active',
+      limit: 1
+    });
+    
+    // Update user with correct data
+    await storage.updateUserStripeInfo(user.id, {
+      customerId: customer.id,
+      subscriptionId: subscriptions.data.length > 0 ? subscriptions.data[0].id : null
+    });
+    
+    if (subscriptions.data.length === 0) {
+      await storage.updateUserPlan(user.id, 'free');
+      return {
+        success: true,
+        message: "Updated to free plan - no active subscription",
+        plan: 'free'
+      };
+    } else {
+      await storage.updateUserPlan(user.id, 'paid');
+      return {
+        success: true,
+        message: "Updated to paid plan with active subscription",
+        plan: 'paid',
+        subscriptionId: subscriptions.data[0].id
+      };
+    }
+  } catch (error: any) {
+    console.error("Subscription sync error:", error);
+    throw error;
+  }
+}
+
 declare global {
   namespace Express {
     interface User extends SelectUser {}
@@ -129,31 +204,36 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: info?.message || "Authentication failed" });
       }
       
-      // Verify subscription status before login completion
-      try {
-        if (user.stripeSubscriptionId) {
-          await verifySubscriptionStatus(
-            user.id, 
-            user.stripeSubscriptionId, 
-            user.plan
-          );
-          
-          // Refresh user data to get updated plan if changed
-          const updatedUser = await storage.getUser(user.id);
-          if (updatedUser) {
-            user = updatedUser;
-          }
-        }
-      } catch (verifyError) {
-        console.error("Error verifying subscription during login:", verifyError);
-        // Continue with login even if verification fails
-      }
+      // First login the user
+      const loginPromise = new Promise<void>((resolve, reject) => {
+        req.login(user, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
       
-      req.login(user, (err) => {
-        if (err) return next(err);
+      try {
+        await loginPromise;
+        
+        // Now that the user is logged in, sync their subscription status with Stripe
+        // We'll perform the sync asynchronously so it doesn't block the login response
+        (async () => {
+          try {
+            // Use the synchronization endpoint to get the latest subscription data from Stripe
+            const syncResult = await syncSubscriptionWithStripe(user);
+            console.log(`Synced subscription for ${user.email} during login:`, syncResult);
+          } catch (syncError) {
+            console.error("Error syncing subscription during login:", syncError);
+            // Continue with login even if sync fails
+          }
+        })();
+        
+        // Return user data immediately without waiting for the sync
         const { password, ...userWithoutPassword } = user as any;
         res.status(200).json(userWithoutPassword);
-      });
+      } catch (error) {
+        next(error);
+      }
     })(req, res, next);
   });
 
