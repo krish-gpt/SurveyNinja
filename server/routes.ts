@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth } from "./auth";
-import { setupStripe } from "./stripe";
+import { setupStripe, verifySubscriptionStatus } from "./stripe";
 import { insertFormSchema, insertResponseSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -326,6 +326,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Test endpoint for subscription verification
+  app.post("/api/test-subscription-verification", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+    
+    try {
+      const user = req.user;
+      const result: any = { 
+        before: { plan: user.plan },
+        action: "verification" 
+      };
+      
+      if (user.stripeSubscriptionId) {
+        // Test subscription verification
+        const verifiedPlan = await verifySubscriptionStatus(
+          user.id,
+          user.stripeSubscriptionId,
+          user.plan
+        );
+        
+        // Get the updated user information
+        const updatedUser = await storage.getUser(user.id);
+        result.after = { 
+          plan: updatedUser?.plan || user.plan
+        };
+        result.verified = true;
+        result.planChanged = user.plan !== verifiedPlan;
+      } else {
+        result.verified = false;
+        result.after = { plan: user.plan };
+        result.message = "No subscription ID found for user";
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ 
+        error: error.message,
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+      });
     }
   });
 

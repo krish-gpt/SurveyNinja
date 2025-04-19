@@ -12,6 +12,46 @@ const stripe = process.env.STRIPE_SECRET_KEY
 
 const SUBSCRIPTION_PRICE_ID = process.env.STRIPE_PRICE_ID || "price_placeholder";
 
+// Utility function for verifying subscription status
+export async function verifySubscriptionStatus(userId: number, stripeSubscriptionId: string | null, currentPlan: string): Promise<string> {
+  // If no subscription ID or no Stripe connection, we can't verify, so keep current plan
+  if (!stripeSubscriptionId || !stripe) {
+    return currentPlan;
+  }
+  
+  try {
+    // Retrieve the current subscription directly from Stripe
+    const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+    
+    // Determine the plan based on subscription status
+    if (subscription.status === 'active' || subscription.status === 'trialing') {
+      if (currentPlan !== 'paid') {
+        // If subscription is active but user not on paid plan, update them
+        console.log(`Subscription verification: User ${userId} has active subscription but is on ${currentPlan} plan. Updating to paid.`);
+        await storage.updateUserPlan(userId, 'paid');
+        return 'paid';
+      }
+      return 'paid';
+    } else if (subscription.status === 'canceled' || 
+               subscription.status === 'unpaid' || 
+               subscription.status === 'incomplete_expired') {
+      if (currentPlan !== 'free') {
+        // If subscription is inactive but user on paid plan, downgrade them
+        console.log(`Subscription verification: User ${userId} has inactive subscription (${subscription.status}) but is on ${currentPlan} plan. Downgrading to free.`);
+        await storage.updateUserPlan(userId, 'free');
+        return 'free';
+      }
+      return 'free';
+    }
+    
+    // For other statuses like 'incomplete', keep current plan until resolved
+    return currentPlan;
+  } catch (error) {
+    console.error(`Error verifying subscription status for user ${userId}:`, error);
+    return currentPlan; // On error, don't change anything
+  }
+}
+
 export function setupStripe(app: Express) {
   // Endpoint to create a subscription session
   app.post("/api/create-subscription", async (req, res) => {
@@ -247,6 +287,27 @@ export function setupStripe(app: Express) {
     }
 
     const user = req.user;
+    
+    // Verify and update subscription status if necessary
+    if (user.stripeSubscriptionId) {
+      const verifiedPlan = await verifySubscriptionStatus(
+        user.id, 
+        user.stripeSubscriptionId, 
+        user.plan
+      );
+      
+      // If plan was updated during verification, get the updated user
+      if (verifiedPlan !== user.plan) {
+        const updatedUser = await storage.getUser(user.id);
+        if (updatedUser) {
+          return res.json({
+            plan: updatedUser.plan,
+            subscriptionId: updatedUser.stripeSubscriptionId,
+            customerId: updatedUser.stripeCustomerId,
+          });
+        }
+      }
+    }
     
     res.json({
       plan: user.plan,

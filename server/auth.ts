@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { insertUserSchema } from "@shared/schema";
+import { verifySubscriptionStatus } from "./stripe";
 
 declare global {
   namespace Express {
@@ -122,10 +123,30 @@ export function setupAuth(app: Express) {
 
   // Login endpoint
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
+    passport.authenticate("local", async (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: info?.message || "Authentication failed" });
+      }
+      
+      // Verify subscription status before login completion
+      try {
+        if (user.stripeSubscriptionId) {
+          await verifySubscriptionStatus(
+            user.id, 
+            user.stripeSubscriptionId, 
+            user.plan
+          );
+          
+          // Refresh user data to get updated plan if changed
+          const updatedUser = await storage.getUser(user.id);
+          if (updatedUser) {
+            user = updatedUser;
+          }
+        }
+      } catch (verifyError) {
+        console.error("Error verifying subscription during login:", verifyError);
+        // Continue with login even if verification fails
       }
       
       req.login(user, (err) => {
@@ -145,8 +166,32 @@ export function setupAuth(app: Express) {
   });
 
   // Get current user endpoint
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    // Verify subscription status on user data access
+    try {
+      if (req.user.stripeSubscriptionId) {
+        const currentPlan = req.user.plan;
+        const verifiedPlan = await verifySubscriptionStatus(
+          req.user.id, 
+          req.user.stripeSubscriptionId, 
+          currentPlan
+        );
+        
+        // If plan changed during verification, refresh user data
+        if (verifiedPlan !== currentPlan) {
+          const updatedUser = await storage.getUser(req.user.id);
+          if (updatedUser) {
+            req.user = updatedUser;
+          }
+        }
+      }
+    } catch (verifyError) {
+      console.error("Error verifying subscription during user data access:", verifyError);
+      // Continue providing user data even if verification fails
+    }
+    
     const { password, ...userWithoutPassword } = req.user;
     res.json(userWithoutPassword);
   });
