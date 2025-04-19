@@ -1,9 +1,20 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { FormElement } from "@shared/schema";
+import { FormElement, Form as FormType } from "@shared/schema";
 import { ClipboardCopy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { DetailedForm, ResponseData } from "@/types/form-types";
+
+// Define the types for the component props
+interface DetailedForm extends FormType {
+  elements: FormElement[];
+}
+
+interface ResponseData {
+  id: number;
+  createdAt: string;
+  data: Record<string, any>;
+  [key: string]: any;
+}
 
 interface ResponseDetailsModalProps {
   isOpen: boolean;

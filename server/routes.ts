@@ -5,14 +5,6 @@ import { setupAuth } from "./auth";
 import { setupStripe, verifySubscriptionStatus } from "./stripe";
 import { insertFormSchema, insertResponseSchema, FormElement } from "@shared/schema";
 import { requirePaidPlan, checkPlanLimits } from "./middleware/subscription-guard";
-import Stripe from "stripe";
-
-// Initialize Stripe with API key
-const stripe = process.env.STRIPE_SECRET_KEY
-  ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2023-08-16" as any,
-    })
-  : null;
 
 // Utility functions for premium features
 function groupResponsesByDate(responses: any[]) {
@@ -87,7 +79,7 @@ function generateFieldAnalytics(responses: any[], form: any) {
       completionRate,
       responseCount: filledCount,
       // Add field-specific analytics based on type
-      ...(fieldType === 'dropdown' || fieldType === 'multiple-choice' 
+      ...(fieldType === 'select' || fieldType === 'radio' 
         ? { valueDistribution: calculateValueDistribution(values) }
         : {})
     };
@@ -451,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Form not found" });
       }
       
-      if (!req.user || form.userId !== req.user.id) {
+      if (form.userId !== req.user.id) {
         return res.status(403).json({ message: "You do not have access to this form" });
       }
       
@@ -489,7 +481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Form not found" });
       }
       
-      if (!req.user || form.userId !== req.user.id) {
+      if (form.userId !== req.user.id) {
         return res.status(403).json({ message: "You do not have access to this form" });
       }
       
@@ -581,187 +573,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         error: error.message,
         stack: process.env.NODE_ENV === "development" ? error.stack : undefined
-      });
-    }
-  });
-  
-  // Endpoint to get or create a subscription (legacy approach)
-  app.post("/api/get-or-create-subscription", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "You must be logged in" });
-    }
-
-    let user = req.user;
-
-    // If user already has a subscription, retrieve it
-    if (user.stripeSubscriptionId) {
-      try {
-        if (!stripe) {
-          return res.status(503).json({ message: "Stripe is not configured" });
-        }
-        
-        const subscription = await stripe.subscriptions.retrieve(user.stripeSubscriptionId);
-
-        if (subscription.status === "active" || subscription.status === "trialing") {
-          return res.json({
-            subscriptionId: subscription.id,
-            status: subscription.status,
-            alreadyActive: true
-          });
-        }
-        
-        // If subscription exists but isn't active, we'll create a new one below
-      } catch (error) {
-        console.error("Error retrieving existing subscription:", error);
-        // Fall through to create a new subscription
-      }
-    }
-    
-    try {
-      if (!stripe) {
-        return res.status(503).json({ message: "Stripe is not configured" });
-      }
-
-      if (!process.env.STRIPE_PRICE_ID) {
-        return res.status(503).json({ message: "Stripe price ID is not configured" });
-      }
-      
-      if (!user.email) {
-        return res.status(400).json({ message: "User email is required" });
-      }
-
-      // Create or retrieve customer
-      let customerId = user.stripeCustomerId;
-
-      if (!customerId) {
-        // Create new customer
-        const customer = await stripe.customers.create({
-          email: user.email,
-          name: user.username,
-          metadata: {
-            userId: user.id.toString(),
-          },
-        });
-
-        customerId = customer.id;
-        
-        // Update user with customer ID
-        user = await storage.updateUserStripeInfo(user.id, {
-          customerId: customer.id,
-          subscriptionId: null,
-        });
-      }
-
-      // Create the subscription
-      const subscription = await stripe.subscriptions.create({
-        customer: customerId,
-        items: [{ price: process.env.STRIPE_PRICE_ID }],
-        payment_behavior: 'default_incomplete',
-        expand: ['latest_invoice.payment_intent'],
-      });
-
-      // Store subscription ID but don't change plan yet (webhook will do that on successful payment)
-      await storage.updateUserStripeInfo(user.id, {
-        customerId,
-        subscriptionId: subscription.id,
-      });
-
-      // Get client secret for payment confirmation
-      let clientSecret = null;
-      
-      // TypeScript workaround for latest_invoice handling
-      // Using any here to bypass TypeScript limitations with Stripe's types
-      const latestInvoice = subscription.latest_invoice as any;
-      if (latestInvoice && typeof latestInvoice === 'object') {
-        const paymentIntent = latestInvoice.payment_intent;
-        if (paymentIntent && typeof paymentIntent === 'object') {
-          clientSecret = paymentIntent.client_secret;
-        }
-      }
-
-      res.json({
-        subscriptionId: subscription.id,
-        clientSecret,
-        status: subscription.status,
-      });
-    } catch (error: any) {
-      console.error("Error creating subscription:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-  
-  // Endpoint to create a checkout session (recommended approach)
-  app.post("/api/create-checkout-session", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "You must be logged in" });
-    }
-
-    let user = req.user;
-    
-    // If user already has an active subscription
-    if (user.plan === "paid") {
-      return res.json({
-        success: true,
-        message: "Already subscribed"
-      });
-    }
-    
-    try {
-      if (!stripe) {
-        return res.status(503).json({ message: "Stripe is not configured" });
-      }
-
-      if (!process.env.STRIPE_PRICE_ID) {
-        return res.status(503).json({ message: "Stripe price ID is not configured" });
-      }
-      
-      if (!user.email) {
-        return res.status(400).json({ message: "User email is required" });
-      }
-
-      // Create or get customer
-      let customerId = user.stripeCustomerId;
-
-      if (!customerId) {
-        // Create new customer
-        const customer = await stripe.customers.create({
-          email: user.email,
-          name: user.username,
-          metadata: {
-            userId: user.id.toString(),
-          },
-        });
-
-        customerId = customer.id;
-        
-        // Update user with customer ID
-        await storage.updateUserStripeInfo(user.id, {
-          customerId: customer.id,
-          subscriptionId: null,
-        });
-      }
-      
-      // Create the checkout session
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        payment_method_types: ['card'],
-        line_items: [{
-          price: process.env.STRIPE_PRICE_ID,
-          quantity: 1,
-        }],
-        mode: 'subscription',
-        success_url: `${req.headers.origin}/dashboard?subscription=success`,
-        cancel_url: `${req.headers.origin}/upgrade?canceled=true`,
-        metadata: {
-          userId: user.id.toString()
-        },
-      });
-
-      res.json({ url: session.url });
-    } catch (error: any) {
-      console.error("Error creating checkout session:", error);
-      res.status(500).json({ 
-        error: error.message 
       });
     }
   });
