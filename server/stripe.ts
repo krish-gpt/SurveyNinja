@@ -491,7 +491,7 @@ export function setupStripe(app: Express) {
       });
 
       res.status(200).json({ sessionId: session.id });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create checkout session:', error);
       res.status(500).json({ 
         message: 'Could not create checkout session',
