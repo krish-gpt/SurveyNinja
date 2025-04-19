@@ -1,8 +1,11 @@
 import { forms, users, responses, type User, type InsertUser, type Form, type InsertForm, type Response, type InsertResponse } from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { db } from "./db";
+import { eq, and, desc } from "drizzle-orm";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 // Modify the interface with needed CRUD methods
 export interface IStorage {
@@ -33,69 +36,54 @@ export interface IStorage {
   sessionStore: session.SessionStore;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private forms: Map<number, Form>;
-  private responses: Map<number, Response>;
-  private currentUserId: number;
-  private currentFormId: number;
-  private currentResponseId: number;
-  
+export class DatabaseStorage implements IStorage {
   sessionStore: session.SessionStore;
 
   constructor() {
-    this.users = new Map();
-    this.forms = new Map();
-    this.responses = new Map();
-    this.currentUserId = 1;
-    this.currentFormId = 1;
-    this.currentResponseId = 1;
-    
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email === email,
-    );
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const now = new Date();
-    const user: User = { 
-      ...insertUser, 
-      id, 
-      plan: "free", 
-      stripeCustomerId: null, 
-      stripeSubscriptionId: null, 
-      paymentDate: null
-    };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        plan: "free",
+      })
+      .returning();
     return user;
   }
 
   async updateUserPlan(userId: number, plan: string): Promise<User> {
-    const user = await this.getUser(userId);
-    if (!user) {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ plan })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updatedUser) {
       throw new Error(`User with ID ${userId} not found`);
     }
     
-    const updatedUser = { ...user, plan };
-    this.users.set(userId, updatedUser);
     return updatedUser;
   }
 
@@ -103,109 +91,126 @@ export class MemStorage implements IStorage {
     userId: number, 
     stripeInfo: { customerId: string, subscriptionId: string, paymentDate?: Date }
   ): Promise<User> {
-    const user = await this.getUser(userId);
-    if (!user) {
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        stripeCustomerId: stripeInfo.customerId,
+        stripeSubscriptionId: stripeInfo.subscriptionId,
+        paymentDate: stripeInfo.paymentDate || new Date(),
+        plan: "paid"
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updatedUser) {
       throw new Error(`User with ID ${userId} not found`);
     }
     
-    const updatedUser = { 
-      ...user, 
-      stripeCustomerId: stripeInfo.customerId,
-      stripeSubscriptionId: stripeInfo.subscriptionId,
-      paymentDate: stripeInfo.paymentDate || new Date(),
-      plan: "paid"
-    };
-    this.users.set(userId, updatedUser);
     return updatedUser;
   }
 
   // Form operations
   async getForms(userId: number): Promise<Form[]> {
-    return Array.from(this.forms.values()).filter(
-      (form) => form.userId === userId,
-    );
+    return db.select().from(forms).where(eq(forms.userId, userId));
   }
 
   async getForm(id: number): Promise<Form | undefined> {
-    return this.forms.get(id);
+    const [form] = await db.select().from(forms).where(eq(forms.id, id));
+    return form;
   }
 
   async getFormByUserIdAndId(userId: number, formId: number): Promise<Form | undefined> {
-    const form = await this.getForm(formId);
-    if (form && form.userId === userId) {
-      return form;
-    }
-    return undefined;
+    const [form] = await db
+      .select()
+      .from(forms)
+      .where(and(eq(forms.id, formId), eq(forms.userId, userId)));
+    return form;
   }
 
   async createForm(insertForm: InsertForm): Promise<Form> {
-    const id = this.currentFormId++;
     const now = new Date();
-    const form: Form = { 
-      ...insertForm, 
-      id, 
-      createdAt: now, 
-      updatedAt: now 
-    };
-    this.forms.set(id, form);
+    const [form] = await db
+      .insert(forms)
+      .values({
+        ...insertForm,
+        createdAt: now,
+        updatedAt: now
+      })
+      .returning();
+
     return form;
   }
 
   async updateForm(id: number, partialForm: Partial<InsertForm>): Promise<Form> {
-    const form = await this.getForm(id);
-    if (!form) {
+    const [updatedForm] = await db
+      .update(forms)
+      .set({
+        ...partialForm,
+        updatedAt: new Date()
+      })
+      .where(eq(forms.id, id))
+      .returning();
+
+    if (!updatedForm) {
       throw new Error(`Form with ID ${id} not found`);
     }
     
-    const updatedForm = { 
-      ...form, 
-      ...partialForm,
-      updatedAt: new Date()
-    };
-    this.forms.set(id, updatedForm);
     return updatedForm;
   }
 
   async deleteForm(id: number): Promise<boolean> {
-    return this.forms.delete(id);
+    const result = await db.delete(forms).where(eq(forms.id, id));
+    return !!result;
   }
 
   async getFormsCount(userId: number): Promise<number> {
-    return (await this.getForms(userId)).length;
+    const result = await db
+      .select({ count: forms.id })
+      .from(forms)
+      .where(eq(forms.userId, userId))
+      .count();
+    
+    return result[0]?.count || 0;
   }
 
   // Response operations
   async getResponses(formId: number, limit?: number): Promise<Response[]> {
-    const formResponses = Array.from(this.responses.values())
-      .filter((response) => response.formId === formId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    let query = db
+      .select()
+      .from(responses)
+      .where(eq(responses.formId, formId))
+      .orderBy(desc(responses.createdAt));
     
     if (limit !== undefined) {
-      return formResponses.slice(0, limit);
+      query = query.limit(limit);
     }
     
-    return formResponses;
+    return query;
   }
 
   async getResponse(id: number): Promise<Response | undefined> {
-    return this.responses.get(id);
+    const [response] = await db.select().from(responses).where(eq(responses.id, id));
+    return response;
   }
 
   async createResponse(insertResponse: InsertResponse): Promise<Response> {
-    const id = this.currentResponseId++;
-    const now = new Date();
-    const response: Response = { 
-      ...insertResponse, 
-      id, 
-      createdAt: now 
-    };
-    this.responses.set(id, response);
+    const [response] = await db
+      .insert(responses)
+      .values(insertResponse)
+      .returning();
+
     return response;
   }
 
   async getResponsesCount(formId: number): Promise<number> {
-    return (await this.getResponses(formId)).length;
+    const result = await db
+      .select({ count: responses.id })
+      .from(responses)
+      .where(eq(responses.formId, formId))
+      .count();
+    
+    return result[0]?.count || 0;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
