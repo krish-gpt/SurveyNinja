@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { useSubscription } from '@/hooks/use-subscription';
 import { apiRequest } from '@/lib/queryClient';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LuCheckCircle } from 'react-icons/lu';
-import { Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 
 export default function SubscriptionSuccessPage() {
-  const navigate = useNavigate();
+  const [_, navigate] = useLocation();
   const { toast } = useToast();
   const { subscription, isLoading: isSubscriptionLoading } = useSubscription();
   const [isVerifying, setIsVerifying] = useState(true);
@@ -77,7 +76,7 @@ export default function SubscriptionSuccessPage() {
       <Card className="border-primary">
         <CardHeader className="text-center pb-6">
           <div className="mx-auto bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-            <LuCheckCircle className="h-8 w-8 text-primary" />
+            <CheckCircle className="h-8 w-8 text-primary" />
           </div>
           <CardTitle className="text-2xl">Thank You!</CardTitle>
           <CardDescription className="text-lg mt-2">
@@ -92,19 +91,19 @@ export default function SubscriptionSuccessPage() {
             <h3 className="font-medium">Pro Plan Features Now Available:</h3>
             <ul className="space-y-2">
               <li className="flex items-center gap-2">
-                <LuCheckCircle className="text-primary" />
+                <CheckCircle className="text-primary h-4 w-4" />
                 <span>Create unlimited forms</span>
               </li>
               <li className="flex items-center gap-2">
-                <LuCheckCircle className="text-primary" />
+                <CheckCircle className="text-primary h-4 w-4" />
                 <span>Advanced analytics and insights</span>
               </li>
               <li className="flex items-center gap-2">
-                <LuCheckCircle className="text-primary" />
+                <CheckCircle className="text-primary h-4 w-4" />
                 <span>Export responses to CSV</span>
               </li>
               <li className="flex items-center gap-2">
-                <LuCheckCircle className="text-primary" />
+                <CheckCircle className="text-primary h-4 w-4" />
                 <span>Up to 2000 responses per form</span>
               </li>
             </ul>

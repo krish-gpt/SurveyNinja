@@ -54,12 +54,15 @@ export default function UpgradePage() {
       
       // Redirect to Stripe Checkout
       const stripe = await stripePromise;
-      const { error } = await stripe.redirectToCheckout({ sessionId });
-      
-      if (error) {
-        throw new Error(error.message);
+      if (stripe) {
+        const { error } = await stripe.redirectToCheckout({ sessionId });
+        if (error) {
+          throw new Error(error.message);
+        }
+      } else {
+        throw new Error('Stripe failed to initialize');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Checkout error:', error);
       setCheckoutError(error.message || 'An unexpected error occurred');
       toast({
@@ -109,7 +112,7 @@ export default function UpgradePage() {
             <ul className="space-y-2">
               {freeFeatures.map((feature, index) => (
                 <li key={index} className="flex items-center gap-2">
-                  <LuCheckCircle className="text-primary" />
+                  <CheckCircle className="text-primary h-4 w-4" />
                   <span>{feature}</span>
                 </li>
               ))}
@@ -138,7 +141,7 @@ export default function UpgradePage() {
             <ul className="space-y-2">
               {proFeatures.map((feature, index) => (
                 <li key={index} className="flex items-center gap-2">
-                  <LuCheckCircle className="text-primary" />
+                  <CheckCircle className="text-primary h-4 w-4" />
                   <span>{feature}</span>
                 </li>
               ))}
@@ -172,7 +175,7 @@ export default function UpgradePage() {
       {checkoutError && (
         <div className="mt-6 p-4 border border-destructive text-destructive rounded-md">
           <div className="flex gap-2 items-center">
-            <LuX className="h-5 w-5" />
+            <X className="h-5 w-5" />
             <p>{checkoutError}</p>
           </div>
         </div>
