@@ -451,7 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Form not found" });
       }
       
-      if (form.userId !== req.user.id) {
+      if (!req.user || form.userId !== req.user.id) {
         return res.status(403).json({ message: "You do not have access to this form" });
       }
       
@@ -489,7 +489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Form not found" });
       }
       
-      if (form.userId !== req.user.id) {
+      if (!req.user || form.userId !== req.user.id) {
         return res.status(403).json({ message: "You do not have access to this form" });
       }
       
@@ -670,10 +670,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let clientSecret = null;
       
       // TypeScript workaround for latest_invoice handling
-      const latestInvoice = subscription.latest_invoice;
-      if (typeof latestInvoice === 'object' && latestInvoice !== null) {
+      // Using any here to bypass TypeScript limitations with Stripe's types
+      const latestInvoice = subscription.latest_invoice as any;
+      if (latestInvoice && typeof latestInvoice === 'object') {
         const paymentIntent = latestInvoice.payment_intent;
-        if (typeof paymentIntent === 'object' && paymentIntent !== null) {
+        if (paymentIntent && typeof paymentIntent === 'object') {
           clientSecret = paymentIntent.client_secret;
         }
       }
