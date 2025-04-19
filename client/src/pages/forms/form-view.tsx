@@ -2,6 +2,11 @@ import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Form as FormType, FormElement } from "@shared/schema";
+
+// Extend FormType with the correct elements type
+interface FormWithElements extends FormType {
+  elements: FormElement[];
+}
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -23,7 +28,7 @@ export default function FormView() {
   const [formData, setFormData] = useState<Record<string, any>>({});
   
   // Fetch form
-  const { data: form, isLoading, error } = useQuery<FormType>({
+  const { data: form, isLoading, error } = useQuery<FormWithElements>({
     queryKey: [`/api/forms/${id}`],
   });
   
@@ -70,8 +75,8 @@ export default function FormView() {
     e.preventDefault();
     
     // Validate required fields
-    const requiredFields = form?.elements.filter((element: any) => element.required);
-    const missingFields = requiredFields?.filter((field: any) => 
+    const requiredFields = form?.elements ? form.elements.filter((element: FormElement) => element.required) : [];
+    const missingFields = requiredFields.filter((field: FormElement) => 
       !formData[field.id] || 
       (Array.isArray(formData[field.id]) && formData[field.id].length === 0)
     );
@@ -311,7 +316,7 @@ export default function FormView() {
           
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit}>
-              {(form.elements as FormElement[])?.map((element: FormElement) => (
+              {form.elements.map((element: FormElement) => (
                 <div key={element.id} className="mb-6 pb-6 border-b border-gray-200 last:border-0">
                   {renderFormElement(element)}
                   {element.required && (
