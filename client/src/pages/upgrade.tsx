@@ -1,6 +1,4 @@
-import { useStripe, Elements, PaymentElement, useElements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/navbar";
@@ -9,114 +7,46 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { useAuth } from '@/hooks/use-auth';
 import { useSubscription } from '@/hooks/use-subscription';
-import { queryClient } from '@/lib/queryClient';
-
-// Load Stripe outside component to avoid recreating on each render
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
-}
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-
-// Payment form component
-const SubscribeForm = () => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!stripe || !elements) {
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: window.location.origin + '/dashboard',
-        },
-      });
-      
-      if (error) {
-        toast({
-          title: "Payment Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        // Success will redirect to return_url
-        toast({
-          title: "Payment Successful",
-          description: "You are now subscribed to the Pro plan!",
-        });
-        
-        // Refresh user data
-        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-      }
-    } catch (err: any) {
-      toast({
-        title: "Payment Error",
-        description: err.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
-      
-      <Button 
-        type="submit" 
-        className="w-full" 
-        disabled={!stripe || isSubmitting}
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          "Subscribe Now"
-        )}
-      </Button>
-    </form>
-  );
-};
+import { useLocation } from 'wouter';
 
 // Main subscription page
 export default function UpgradePage() {
-  const [clientSecret, setClientSecret] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { subscription } = useSubscription();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
-  useEffect(() => {
-    // Don't create subscription if user already has one
-    if (subscription?.plan === "pro") {
-      setIsLoading(false);
-      return;
-    }
-    
-    // Create subscription
+  // Handle checkout session creation
+  const handleSubscribe = async () => {
     setIsLoading(true);
-    apiRequest("POST", "/api/get-or-create-subscription")
-      .then((res) => res.json())
-      .then((data) => {
-        setClientSecret(data.clientSecret);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error("Subscription error:", error);
-        setIsLoading(false);
+    
+    try {
+      const response = await apiRequest("POST", "/api/create-checkout-session");
+      const data = await response.json();
+      
+      if (data.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      } else if (data.success && data.message === "Already subscribed") {
+        toast({
+          title: "Already Subscribed",
+          description: "You are already subscribed to the Pro plan.",
+        });
+        setLocation("/dashboard");
+      } else {
+        throw new Error("Failed to create checkout session");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start subscription process",
+        variant: "destructive",
       });
-  }, [subscription]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // Features included in the pro plan
   const features = [
@@ -225,16 +155,31 @@ export default function UpgradePage() {
                     $19/month - Unlock all premium features
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  {isLoading || !clientSecret ? (
-                    <div className="py-8 flex justify-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  ) : (
-                    <Elements stripe={stripePromise} options={{ clientSecret }}>
-                      <SubscribeForm />
-                    </Elements>
-                  )}
+                <CardContent className="flex flex-col items-center text-center">
+                  <p className="mb-6 text-gray-600">
+                    Join our Pro plan today and take your form building to the next level. 
+                    We use Stripe for secure payment processing.
+                  </p>
+                  
+                  <Button 
+                    onClick={handleSubscribe}
+                    disabled={isLoading}
+                    size="lg"
+                    className="w-full md:w-auto"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      "Subscribe Now - $19/month"
+                    )}
+                  </Button>
+                  
+                  <p className="mt-4 text-sm text-gray-500">
+                    You'll be redirected to Stripe's secure checkout page.
+                  </p>
                 </CardContent>
               </Card>
             </div>

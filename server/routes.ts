@@ -585,7 +585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Endpoint to get or create a subscription
+  // Endpoint to get or create a subscription (legacy approach)
   app.post("/api/get-or-create-subscription", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "You must be logged in" });
@@ -687,6 +687,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error creating subscription:", error);
       res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Endpoint to create a checkout session (recommended approach)
+  app.post("/api/create-checkout-session", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+
+    let user = req.user;
+    
+    // If user already has an active subscription
+    if (user.plan === "paid") {
+      return res.json({
+        success: true,
+        message: "Already subscribed"
+      });
+    }
+    
+    try {
+      if (!stripe) {
+        return res.status(503).json({ message: "Stripe is not configured" });
+      }
+
+      if (!process.env.STRIPE_PRICE_ID) {
+        return res.status(503).json({ message: "Stripe price ID is not configured" });
+      }
+      
+      if (!user.email) {
+        return res.status(400).json({ message: "User email is required" });
+      }
+
+      // Create or get customer
+      let customerId = user.stripeCustomerId;
+
+      if (!customerId) {
+        // Create new customer
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: user.username,
+          metadata: {
+            userId: user.id.toString(),
+          },
+        });
+
+        customerId = customer.id;
+        
+        // Update user with customer ID
+        await storage.updateUserStripeInfo(user.id, {
+          customerId: customer.id,
+          subscriptionId: null,
+        });
+      }
+      
+      // Create the checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [{
+          price: process.env.STRIPE_PRICE_ID,
+          quantity: 1,
+        }],
+        mode: 'subscription',
+        success_url: `${req.headers.origin}/dashboard?subscription=success`,
+        cancel_url: `${req.headers.origin}/upgrade?canceled=true`,
+        metadata: {
+          userId: user.id.toString()
+        },
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Error creating checkout session:", error);
+      res.status(500).json({ 
+        error: error.message 
+      });
     }
   });
 
