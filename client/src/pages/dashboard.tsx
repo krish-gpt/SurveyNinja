@@ -90,9 +90,10 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
 
-          {/* Subscription Banner */}
-          {user?.plan === "free" && (
-            <div className="mt-6 bg-white overflow-hidden shadow rounded-lg divide-y divide-gray-200">
+          {/* Stats Dashboard for All Users */}
+          <div className="mt-6 bg-white overflow-hidden shadow rounded-lg divide-y divide-gray-200">
+            {/* Subscription Banner (for free users only) */}
+            {user?.plan === "free" && (
               <div className="px-4 py-5 sm:px-6 bg-primary-50 flex items-center justify-between">
                 <div>
                   <h3 className="text-lg leading-6 font-medium text-gray-900">Free Plan</h3>
@@ -106,79 +107,81 @@ export default function Dashboard() {
                   </Button>
                 </Link>
               </div>
-              <div className="px-4 py-5 sm:p-6">
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {isLoadingStats ? (
-                    Array(3).fill(0).map((_, i) => (
-                      <Card key={i} className="bg-white">
-                        <CardContent className="p-6">
-                          <div className="flex items-center">
-                            <div className="w-full h-12 flex justify-center items-center">
-                              <Loader2 className="h-6 w-6 animate-spin text-primary/70" />
-                            </div>
+            )}
+            
+            {/* Stats Cards - Shown for all users regardless of plan */}
+            <div className="px-4 py-5 sm:p-6">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {isLoadingStats ? (
+                  Array(3).fill(0).map((_, i) => (
+                    <Card key={i} className="bg-white">
+                      <CardContent className="p-6">
+                        <div className="flex items-center">
+                          <div className="w-full h-12 flex justify-center items-center">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary/70" />
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))
-                  ) : (
-                    <>
-                      <Card>
-                        <CardContent className="px-4 py-5 sm:p-6">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 bg-primary-100 rounded-md p-3">
-                              <FileText className="h-5 w-5 text-primary" />
-                            </div>
-                            <div className="ml-5 w-0 flex-1">
-                              <dl>
-                                <dt className="text-sm font-medium text-gray-500 truncate">Forms Created</dt>
-                                <dd className="text-lg font-medium text-gray-900">
-                                  {stats.formCount} / {stats.maxForms}
-                                </dd>
-                              </dl>
-                            </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <>
+                    <Card>
+                      <CardContent className="px-4 py-5 sm:p-6">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 bg-primary-100 rounded-md p-3">
+                            <FileText className="h-5 w-5 text-primary" />
                           </div>
-                        </CardContent>
-                      </Card>
+                          <div className="ml-5 w-0 flex-1">
+                            <dl>
+                              <dt className="text-sm font-medium text-gray-500 truncate">Forms Created</dt>
+                              <dd className="text-lg font-medium text-gray-900">
+                                {stats.formCount} / {stats.maxForms}
+                              </dd>
+                            </dl>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                      <Card>
-                        <CardContent className="px-4 py-5 sm:p-6">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 bg-primary-100 rounded-md p-3">
-                              <BarChart3 className="h-5 w-5 text-primary" />
-                            </div>
-                            <div className="ml-5 w-0 flex-1">
-                              <dl>
-                                <dt className="text-sm font-medium text-gray-500 truncate">Total Responses</dt>
-                                <dd className="text-lg font-medium text-gray-900">
-                                  {stats.totalResponses} / {stats.maxResponses}
-                                </dd>
-                              </dl>
-                            </div>
+                    <Card>
+                      <CardContent className="px-4 py-5 sm:p-6">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 bg-primary-100 rounded-md p-3">
+                            <BarChart3 className="h-5 w-5 text-primary" />
                           </div>
-                        </CardContent>
-                      </Card>
+                          <div className="ml-5 w-0 flex-1">
+                            <dl>
+                              <dt className="text-sm font-medium text-gray-500 truncate">Total Responses</dt>
+                              <dd className="text-lg font-medium text-gray-900">
+                                {stats.totalResponses} / {stats.maxResponses}
+                              </dd>
+                            </dl>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                      <Card>
-                        <CardContent className="px-4 py-5 sm:p-6">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 bg-primary-100 rounded-md p-3">
-                              <Calendar className="h-5 w-5 text-primary" />
-                            </div>
-                            <div className="ml-5 w-0 flex-1">
-                              <dl>
-                                <dt className="text-sm font-medium text-gray-500 truncate">Recent Activity</dt>
-                                <dd className="text-lg font-medium text-gray-900">Today</dd>
-                              </dl>
-                            </div>
+                    <Card>
+                      <CardContent className="px-4 py-5 sm:p-6">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 bg-primary-100 rounded-md p-3">
+                            <Calendar className="h-5 w-5 text-primary" />
                           </div>
-                        </CardContent>
-                      </Card>
-                    </>
-                  )}
-                </div>
+                          <div className="ml-5 w-0 flex-1">
+                            <dl>
+                              <dt className="text-sm font-medium text-gray-500 truncate">Recent Activity</dt>
+                              <dd className="text-lg font-medium text-gray-900">Today</dd>
+                            </dl>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
               </div>
             </div>
-          )}
+          </div>
 
           {/* Recent Forms */}
           <h2 className="mt-8 text-lg font-medium text-gray-900">Recent Forms</h2>
