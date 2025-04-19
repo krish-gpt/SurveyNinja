@@ -17,42 +17,33 @@ const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
   : null;
 
-function SimplePaymentForm() {
+// Stripe checkout redirect button - simple alternative to Stripe Elements
+function StripeCheckoutButton() {
   const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
+  const [isLoading, setIsLoading] = useState(false);
   
-  const handleSubscribe = async () => {
-    setIsProcessing(true);
+  const handleCheckout = async () => {
+    setIsLoading(true);
     
     try {
-      // Simulate payment success without using Stripe Elements
-      // In a production app, this would redirect to Stripe Checkout instead
-      await apiRequest("POST", "/api/simulate-payment-success");
+      // Create a checkout session and redirect to Stripe
+      const response = await apiRequest("POST", "/api/create-checkout-session");
+      const data = await response.json();
       
-      // Refresh data
-      await queryClient.invalidateQueries({ queryKey: ["/api/subscription"] });
-      await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      
-      toast({
-        title: "Subscription activated!",
-        description: "Thank you for subscribing to the Pro plan!",
-      });
-      
-      // Redirect to dashboard after 2 seconds
-      setTimeout(() => {
-        setLocation('/');
-      }, 2000);
-      
+      if (data.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      } else {
+        throw new Error("Could not create checkout session");
+      }
     } catch (error: any) {
+      console.error("Checkout error:", error);
       toast({
-        title: "Subscription failed",
-        description: error.message || "An error occurred during subscription",
+        title: "Checkout failed",
+        description: error.message || "An error occurred during checkout",
         variant: "destructive",
       });
-    } finally {
-      setIsProcessing(false);
+      setIsLoading(false);
     }
   };
   
@@ -73,22 +64,22 @@ function SimplePaymentForm() {
       
       <Button 
         className="w-full" 
-        onClick={handleSubscribe}
-        disabled={isProcessing}
+        onClick={handleCheckout}
+        disabled={isLoading}
       >
-        {isProcessing ? (
+        {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
+            Preparing Checkout...
           </>
         ) : (
-          "Subscribe Now"
+          "Proceed to Checkout"
         )}
       </Button>
       
       <div className="mt-4 text-sm text-gray-500 flex items-center justify-center">
         <Lock className="w-4 h-4 mr-1" />
-        Secure payment processing
+        Secure payment via Stripe
       </div>
     </div>
   );
@@ -210,39 +201,28 @@ export default function Upgrade() {
     enabled: !!user,
   });
   
+  // Check URL parameters for Stripe Checkout success
   useEffect(() => {
-    if (user && user.plan !== "paid" && !clientSecret) {
-      console.log("Creating subscription session...");
-      // Create subscription session
-      apiRequest("POST", "/api/create-subscription")
-        .then((res) => {
-          console.log("Response status:", res.status);
-          return res.json();
-        })
-        .then((data) => {
-          console.log("Subscription session created:", data);
-          // Force create a dummy client secret for testing purposes
-          // This is a temporary workaround - in production, Stripe should provide this
-          if (!data.clientSecret) {
-            console.log("No client secret found - using test dummy secret");
-            // Create a dummy payment element for demonstration
-            const dummySecret = "seti_1RFZoTR3bgDYb65EYzzEDzzz_secret_PVyc8A82j6OCIvFzXwlJaTr8m";
-            setClientSecret(dummySecret);
-          } else {
-            console.log("Real client secret received:", data.clientSecret.substring(0, 5) + "...");
-            setClientSecret(data.clientSecret);
-          }
-        })
-        .catch((error) => {
-          console.error("Failed to initialize payment:", error);
-          toast({
-            title: "Failed to initialize payment",
-            description: error.message,
-            variant: "destructive",
-          });
+    if (user) {
+      const query = new URLSearchParams(window.location.search);
+      const success = query.get('success');
+      
+      if (success === 'true') {
+        console.log("Detected successful payment from URL");
+        // Refresh data after successful payment
+        queryClient.invalidateQueries({ queryKey: ["/api/subscription"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        
+        toast({
+          title: "Subscription successful!",
+          description: "Your subscription has been activated",
         });
+        
+        // Clear URL parameters
+        window.history.replaceState(null, '', '/upgrade');
+      }
     }
-  }, [user, clientSecret, toast]);
+  }, [user, toast, queryClient]);
   
   // Handler for canceling subscription
   const handleCancelSubscription = async () => {
@@ -365,7 +345,7 @@ export default function Upgrade() {
                 
                 {user?.plan !== "paid" && (
                   <div className="mt-6">
-                    <SimplePaymentForm />
+                    <StripeCheckoutButton />
                   </div>
                 )}
               </CardContent>

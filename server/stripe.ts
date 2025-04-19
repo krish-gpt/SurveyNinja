@@ -188,9 +188,51 @@ export function setupStripe(app: Express) {
     console.log(`Webhook received: ${event.type}`);
     
     switch (event.type) {
+      // Checkout session completed - most important for Stripe Checkout workflow
+      case 'checkout.session.completed':
+        const session = event.data.object;
+        console.log('Checkout session completed:', session.id);
+        
+        // Extract user ID from metadata
+        const userId = session.metadata?.userId;
+        if (!userId) {
+          console.error('No userId in metadata for checkout session:', session.id);
+          break;
+        }
+        
+        try {
+          // Get user from database
+          const user = await storage.getUser(parseInt(userId, 10));
+          if (!user) {
+            console.error('User not found for ID:', userId);
+            break;
+          }
+          
+          console.log(`Checkout completed for user ${user.id}`);
+          
+          // For subscription checkout, update user record
+          if (session.mode === 'subscription') {
+            // Update user to paid plan
+            await storage.updateUserPlan(user.id, 'paid');
+            
+            // Set subscription info if available
+            if (session.subscription) {
+              await storage.updateUserStripeInfo(user.id, {
+                customerId: session.customer as string,
+                subscriptionId: session.subscription as string,
+                paymentDate: new Date()
+              });
+              
+              console.log(`Updated subscription info for user ${user.id}`);
+            }
+          }
+        } catch (error) {
+          console.error('Error processing checkout completion:', error);
+        }
+        break;
+        
       // Payment success events
       case 'payment_intent.succeeded':
-        // Payment was successful, but we'll wait for the subscription status to be updated
         console.log('PaymentIntent was successful!');
         break;
         
@@ -279,38 +321,70 @@ export function setupStripe(app: Express) {
     res.status(200).json({ received: true });
   });
 
-  // Simulate payment success for demo purposes
-  app.post('/api/simulate-payment-success', async (req, res) => {
+  // Create a Stripe Checkout session for subscription
+  app.post('/api/create-checkout-session', async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "You must be logged in" });
     }
 
     try {
+      if (!stripe) {
+        return res.status(503).json({ message: "Stripe is not configured" });
+      }
+      
+      if (!process.env.STRIPE_PRICE_ID) {
+        return res.status(503).json({ message: "Stripe price ID is not configured" });
+      }
+
       const user = req.user;
       
       // Check if the user is already on a paid plan
       if (user.plan === 'paid') {
-        return res.json({ success: true, plan: 'paid', message: 'Already subscribed' });
+        return res.json({ success: true, message: 'Already subscribed' });
       }
       
-      console.log(`Simulating successful subscription payment for user: ${user.id}`);
+      // Create or retrieve customer
+      let customerId = user.stripeCustomerId;
       
-      // Update the user to paid plan
-      await storage.updateUserPlan(user.id, 'paid');
+      if (!customerId) {
+        // Create new customer
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: user.username,
+          metadata: {
+            userId: user.id.toString()
+          }
+        });
+        
+        customerId = customer.id;
+        
+        // Save customer ID to user
+        await storage.updateUserStripeInfo(user.id, {
+          customerId: customer.id,
+          subscriptionId: user.stripeSubscriptionId || null
+        });
+      }
       
-      // Set a payment date
-      const currentDate = new Date();
-      await storage.updateUserStripeInfo(user.id, {
-        customerId: user.stripeCustomerId || 'demo_customer',
-        subscriptionId: user.stripeSubscriptionId || 'demo_subscription',
-        paymentDate: currentDate
+      // Create checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        line_items: [
+          {
+            price: process.env.STRIPE_PRICE_ID,
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${process.env.SERVER_URL || 'http://localhost:5000'}/upgrade?success=true`,
+        cancel_url: `${process.env.SERVER_URL || 'http://localhost:5000'}/upgrade?canceled=true`,
+        metadata: {
+          userId: user.id.toString()
+        }
       });
       
-      console.log(`User ${user.id} upgraded to paid plan successfully (demo)`);
-      
-      return res.json({ success: true, plan: 'paid' });
+      res.json({ url: session.url });
     } catch (error: any) {
-      console.error('Error processing simulated payment:', error);
+      console.error('Error creating checkout session:', error);
       return res.status(500).json({ message: error.message });
     }
   });
