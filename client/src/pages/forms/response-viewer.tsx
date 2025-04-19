@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Form as FormType } from "@shared/schema";
+import { Form as FormType, FormElement } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import Navbar from "@/components/navbar";
 import { Button } from "@/components/ui/button";
@@ -416,7 +416,7 @@ export default function ResponseViewer() {
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis dataKey="name" />
                                 <YAxis allowDecimals={false} />
-                                <Tooltip />
+                                <RechartsTooltip />
                                 <Bar dataKey="value" fill="#4f46e5" radius={[4, 4, 0, 0]} />
                               </BarChart>
                             </ResponsiveContainer>
