@@ -5,7 +5,7 @@ import { ClipboardCopy } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Define the types for the component props
-interface FormWithElements extends FormType {
+interface DetailedForm extends FormType {
   elements: FormElement[];
 }
 
@@ -20,10 +20,15 @@ interface ResponseDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   response: ResponseData | null;
-  form: FormWithElements | null | any;
+  form: DetailedForm | null | any;
 }
 
-export default function ResponseDetailsModal({ isOpen, onClose, response, form }: ResponseDetailsModalProps) {
+export default function ResponseDetailsModal({ 
+  isOpen, 
+  onClose, 
+  response, 
+  form
+}: ResponseDetailsModalProps) {
   const { toast } = useToast();
   
   if (!response || !form) {
