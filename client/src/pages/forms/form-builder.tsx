@@ -239,45 +239,45 @@ export default function FormBuilder() {
             
             {/* Form settings tabs */}
             <div className="px-4 pb-2 border-b border-gray-200">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-[400px] grid-cols-3">
                   <TabsTrigger value="build">Build</TabsTrigger>
                   <TabsTrigger value="design">Design</TabsTrigger>
                   <TabsTrigger value="logic">Logic</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="build" className="mt-4 flex-1 flex">
+                  <FormCanvas
+                    formTitle={formTitle}
+                    formDescription={formDescription}
+                    elements={formElements}
+                    onUpdateTitle={setFormTitle}
+                    onUpdateDescription={setFormDescription}
+                    onAddElement={handleAddElement}
+                    onUpdateElement={handleUpdateElement}
+                    onDuplicateElement={handleDuplicateElement}
+                    onRemoveElement={handleRemoveElement}
+                    onSelectElement={handleSelectElement}
+                    selectedElementId={selectedElement?.id || null}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="design" className="mt-4 p-6">
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h2 className="text-lg font-medium mb-4">Design Settings</h2>
+                    <p className="text-gray-500">Customize the look and feel of your form (Coming soon)</p>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="logic" className="mt-4 p-6">
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <h2 className="text-lg font-medium mb-4">Form Logic</h2>
+                    <p className="text-gray-500">Add conditional logic to your form (Coming soon)</p>
+                  </div>
+                </TabsContent>
               </Tabs>
             </div>
           </div>
-
-          <TabsContent value="build" className="flex-1 flex">
-            <FormCanvas
-              formTitle={formTitle}
-              formDescription={formDescription}
-              elements={formElements}
-              onUpdateTitle={setFormTitle}
-              onUpdateDescription={setFormDescription}
-              onAddElement={handleAddElement}
-              onUpdateElement={handleUpdateElement}
-              onDuplicateElement={handleDuplicateElement}
-              onRemoveElement={handleRemoveElement}
-              onSelectElement={handleSelectElement}
-              selectedElementId={selectedElement?.id || null}
-            />
-          </TabsContent>
-          
-          <TabsContent value="design" className="p-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium mb-4">Design Settings</h2>
-              <p className="text-gray-500">Customize the look and feel of your form (Coming soon)</p>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="logic" className="p-6">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-lg font-medium mb-4">Form Logic</h2>
-              <p className="text-gray-500">Add conditional logic to your form (Coming soon)</p>
-            </div>
-          </TabsContent>
         </div>
 
         {/* Right sidebar (element properties) */}
