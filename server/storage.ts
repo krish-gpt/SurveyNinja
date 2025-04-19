@@ -16,7 +16,7 @@ export interface IStorage {
   getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserPlan(userId: number, plan: string): Promise<User>;
-  updateUserStripeInfo(userId: number, stripeInfo: { customerId: string, subscriptionId: string, paymentDate?: Date }): Promise<User>;
+  updateUserStripeInfo(userId: number, stripeInfo: { customerId: string | null, subscriptionId: string | null, paymentDate?: Date }): Promise<User>;
   
   // Form operations
   getForms(userId: number): Promise<Form[]>;
@@ -96,13 +96,19 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserStripeInfo(
     userId: number, 
-    stripeInfo: { customerId: string, subscriptionId: string, paymentDate?: Date }
+    stripeInfo: { customerId: string | null, subscriptionId: string | null, paymentDate?: Date }
   ): Promise<User> {
     // Create update object with required fields
-    const updateData: any = {
-      stripeCustomerId: stripeInfo.customerId,
-      stripeSubscriptionId: stripeInfo.subscriptionId
-    };
+    const updateData: any = {};
+    
+    // Only add fields that are provided and not null
+    if (stripeInfo.customerId !== undefined) {
+      updateData.stripeCustomerId = stripeInfo.customerId;
+    }
+    
+    if (stripeInfo.subscriptionId !== undefined) {
+      updateData.stripeSubscriptionId = stripeInfo.subscriptionId;
+    }
     
     // Only update payment date if provided
     if (stripeInfo.paymentDate) {
