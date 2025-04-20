@@ -125,11 +125,9 @@ export default function Navbar() {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="relative h-8 w-8 bg-primary rounded-full"
+                  className="relative h-8 w-8 bg-primary text-white rounded-full flex items-center justify-center hover:bg-primary/90"
                 >
-                  <div className="h-8 w-8 rounded-full  flex items-center justify-center text-white">
-                    {user ? getInitials(user.username) : "U"}
-                  </div>
+                  {user ? getInitials(user.username) : "U"}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
