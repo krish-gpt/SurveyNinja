@@ -1,10 +1,44 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import cors from "cors";
 
 const app = express();
+
+// Configure CORS with strict settings
+const corsOptions = {
+  origin: process.env.NODE_ENV === "production" 
+    ? [process.env.ALLOWED_ORIGIN || "https://formpulse.replit.app"] 
+    : ["http://localhost:5000", "http://localhost:3000"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  maxAge: 86400 // 24 hours in seconds
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Add security headers
+app.use((req, res, next) => {
+  // Prevent browsers from incorrectly detecting non-scripts as scripts
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  // Block pages from being framed by other sites to prevent clickjacking
+  res.setHeader('X-Frame-Options', 'DENY');
+  
+  // Disable browser's XSS protection to prevent it from interfering with the application's own XSS protection
+  res.setHeader('X-XSS-Protection', '0');
+  
+  // Restrict where resources can be loaded from
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.stripe.com; connect-src 'self' https://*.stripe.com; frame-src 'self' https://*.stripe.com");
+  
+  // Don't include the Referer header when navigating to other origins
+  res.setHeader('Referrer-Policy', 'same-origin');
+  
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -25,7 +25,12 @@ import {
   ChevronRight,
   Ellipsis,
 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ShareFormModal from "@/components/share-form-modal";
 
@@ -44,7 +49,7 @@ export default function Dashboard() {
     createdAt: string;
     updatedAt: string;
   }
-  
+
   interface UserStats {
     formCount: number;
     maxForms: number;
@@ -53,14 +58,23 @@ export default function Dashboard() {
   }
 
   // Fetch forms with default empty array to prevent "possibly undefined" errors
-  const { data: forms = [], isLoading: isLoadingForms } = useQuery<FormSummary[]>({
+  const { data: forms = [], isLoading: isLoadingForms } = useQuery<
+    FormSummary[]
+  >({
     queryKey: ["/api/forms"],
     enabled: !!user,
   });
 
   // Fetch stats with default empty object to prevent "possibly undefined" errors
-  const { data: stats = { formCount: 0, maxForms: 0, totalResponses: 0, maxResponses: 0 }, 
-    isLoading: isLoadingStats } = useQuery<UserStats>({
+  const {
+    data: stats = {
+      formCount: 0,
+      maxForms: 0,
+      totalResponses: 0,
+      maxResponses: 0,
+    },
+    isLoading: isLoadingStats,
+  } = useQuery<UserStats>({
     queryKey: ["/api/stats"],
     enabled: !!user,
   });
@@ -96,34 +110,38 @@ export default function Dashboard() {
             {user?.plan === "free" && (
               <div className="px-4 py-5 sm:px-6 bg-primary-50 flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">Free Plan</h3>
+                  <h3 className="text-lg leading-6 font-medium text-gray-900">
+                    Free Plan
+                  </h3>
                   <p className="mt-1 text-sm text-gray-500">
                     You are currently on the Free plan with limited features.
                   </p>
                 </div>
-                <Link href="/upgrade">
+                <Link href="/subscription/upgrade">
                   <Button className="bg-primary hover:bg-primary/90">
                     Upgrade to Pro
                   </Button>
                 </Link>
               </div>
             )}
-            
+
             {/* Stats Cards - Shown for all users regardless of plan */}
             <div className="px-4 py-5 sm:p-6">
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {isLoadingStats ? (
-                  Array(3).fill(0).map((_, i) => (
-                    <Card key={i} className="bg-white">
-                      <CardContent className="p-6">
-                        <div className="flex items-center">
-                          <div className="w-full h-12 flex justify-center items-center">
-                            <Loader2 className="h-6 w-6 animate-spin text-primary/70" />
+                  Array(3)
+                    .fill(0)
+                    .map((_, i) => (
+                      <Card key={i} className="bg-white">
+                        <CardContent className="p-6">
+                          <div className="flex items-center">
+                            <div className="w-full h-12 flex justify-center items-center">
+                              <Loader2 className="h-6 w-6 animate-spin text-primary/70" />
+                            </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
+                        </CardContent>
+                      </Card>
+                    ))
                 ) : (
                   <>
                     <Card>
@@ -134,7 +152,9 @@ export default function Dashboard() {
                           </div>
                           <div className="ml-5 w-0 flex-1">
                             <dl>
-                              <dt className="text-sm font-medium text-gray-500 truncate">Forms Created</dt>
+                              <dt className="text-sm font-medium text-gray-500 truncate">
+                                Forms Created
+                              </dt>
                               <dd className="text-lg font-medium text-gray-900">
                                 {stats.formCount} / {stats.maxForms}
                               </dd>
@@ -152,7 +172,9 @@ export default function Dashboard() {
                           </div>
                           <div className="ml-5 w-0 flex-1">
                             <dl>
-                              <dt className="text-sm font-medium text-gray-500 truncate">Total Responses</dt>
+                              <dt className="text-sm font-medium text-gray-500 truncate">
+                                Total Responses
+                              </dt>
                               <dd className="text-lg font-medium text-gray-900">
                                 {stats.totalResponses} / {stats.maxResponses}
                               </dd>
@@ -170,8 +192,12 @@ export default function Dashboard() {
                           </div>
                           <div className="ml-5 w-0 flex-1">
                             <dl>
-                              <dt className="text-sm font-medium text-gray-500 truncate">Recent Activity</dt>
-                              <dd className="text-lg font-medium text-gray-900">Today</dd>
+                              <dt className="text-sm font-medium text-gray-500 truncate">
+                                Recent Activity
+                              </dt>
+                              <dd className="text-lg font-medium text-gray-900">
+                                Today
+                              </dd>
                             </dl>
                           </div>
                         </div>
@@ -184,30 +210,37 @@ export default function Dashboard() {
           </div>
 
           {/* Recent Forms */}
-          <h2 className="mt-8 text-lg font-medium text-gray-900">Recent Forms</h2>
-          
+          <h2 className="mt-8 text-lg font-medium text-gray-900">
+            Recent Forms
+          </h2>
+
           {isLoadingForms ? (
             <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {Array(3).fill(0).map((_, i) => (
-                <Card key={i} className="bg-white">
-                  <CardHeader className="p-6 pb-3">
-                    <div className="h-6 w-2/3 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse mt-2"></div>
-                  </CardHeader>
-                  <CardFooter className="p-6 pt-3 bg-gray-50">
-                    <div className="w-full flex justify-between">
-                      <div className="h-4 w-1/5 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="h-4 w-1/5 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="h-4 w-1/5 bg-gray-200 rounded animate-pulse"></div>
-                    </div>
-                  </CardFooter>
-                </Card>
-              ))}
+              {Array(3)
+                .fill(0)
+                .map((_, i) => (
+                  <Card key={i} className="bg-white">
+                    <CardHeader className="p-6 pb-3">
+                      <div className="h-6 w-2/3 bg-gray-200 rounded animate-pulse"></div>
+                      <div className="h-4 w-1/3 bg-gray-200 rounded animate-pulse mt-2"></div>
+                    </CardHeader>
+                    <CardFooter className="p-6 pt-3 bg-gray-50">
+                      <div className="w-full flex justify-between">
+                        <div className="h-4 w-1/5 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-4 w-1/5 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-4 w-1/5 bg-gray-200 rounded animate-pulse"></div>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                ))}
             </div>
-          ) : (forms.length > 0) ? (
+          ) : forms.length > 0 ? (
             <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {forms.map((form: FormSummary) => (
-                <Card key={form.id} className="bg-white divide-y divide-gray-200">
+                <Card
+                  key={form.id}
+                  className="bg-white divide-y divide-gray-200"
+                >
                   <CardHeader className="px-4 py-5 sm:px-6 flex justify-between items-start">
                     <div>
                       <CardTitle className="text-lg font-medium text-gray-900 truncate">
@@ -220,20 +253,30 @@ export default function Dashboard() {
                     <div className="flex space-x-2">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
                             <Ellipsis className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEditForm(form.id)}>
+                          <DropdownMenuItem
+                            onClick={() => handleEditForm(form.id)}
+                          >
                             <FileEdit className="h-4 w-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleViewResponses(form.id)}>
+                          <DropdownMenuItem
+                            onClick={() => handleViewResponses(form.id)}
+                          >
                             <BarChart3 className="h-4 w-4 mr-2" />
                             View Responses
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleShareForm(form.id)}>
+                          <DropdownMenuItem
+                            onClick={() => handleShareForm(form.id)}
+                          >
                             <Share2 className="h-4 w-4 mr-2" />
                             Share
                           </DropdownMenuItem>
@@ -283,10 +326,13 @@ export default function Dashboard() {
           ) : (
             <div className="mt-4">
               <Alert>
-                <AlertTitle className="text-lg font-semibold">No forms yet</AlertTitle>
+                <AlertTitle className="text-lg font-semibold">
+                  No forms yet
+                </AlertTitle>
                 <AlertDescription className="mt-2">
                   <p className="mb-4">
-                    You haven't created any forms yet. Create your first form to start collecting responses.
+                    You haven't created any forms yet. Create your first form to
+                    start collecting responses.
                   </p>
                   <Button
                     onClick={handleCreateForm}

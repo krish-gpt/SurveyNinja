@@ -461,8 +461,8 @@ export function setupStripe(app: Express) {
           },
         ],
         mode: "subscription",
-        success_url: req.body.successUrl || `${process.env.SERVER_URL || "http://localhost:5000"}/subscription/success`,
-        cancel_url: req.body.cancelUrl || `${process.env.SERVER_URL || "http://localhost:5000"}/subscription/upgrade`,
+        success_url: req.body.successUrl || `${process.env.SERVER_URL || "https://d8e2de97-e36b-46af-b9f2-7fb97d689ac0-00-2thl7ell4oyj5.spock.replit.dev/"}/subscription/success`,
+        cancel_url: req.body.cancelUrl || `${process.env.SERVER_URL || "https://d8e2de97-e36b-46af-b9f2-7fb97d689ac0-00-2thl7ell4oyj5.spock.replit.dev/"}/subscription/upgrade`,
         metadata: {
           userId: user.id.toString(),
         },

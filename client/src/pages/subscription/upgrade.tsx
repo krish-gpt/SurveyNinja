@@ -56,7 +56,6 @@ export default function UpgradePage() {
     try {
       // Create checkout session on server
       const response = await apiRequest('POST', '/api/create-checkout-session', {
-        priceId: import.meta.env.STRIPE_PRICE_ID || 'price_default', // Fallback ID just for safety
         successUrl: `${window.location.origin}/subscription/success`,
         cancelUrl: `${window.location.origin}/subscription/upgrade`
       });
