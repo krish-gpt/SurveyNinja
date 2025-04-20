@@ -219,17 +219,8 @@ export function setupStripe(app: Express) {
     }
   });
 
-  // Create a separate webhook express router that doesn't use the json middleware
-  const webhookRouter = express.Router();
-
-  // Use raw body parser for webhook route only
-  webhookRouter.use(express.raw({ type: "application/json" }));
-
-  // Register the webhook router for the specific webhook endpoint
-  app.use("/api/stripe-webhook", webhookRouter);
-
-  // Webhook endpoint for Stripe events
-  webhookRouter.post("/", async (req: Request, res: Response) => {
+  // Webhook endpoint for Stripe events - raw body handling is configured in index.ts
+  app.post("/api/stripe-webhook", async (req: Request, res: Response) => {
     if (!stripe) {
       return res.status(503).json({ message: "Stripe is not configured" });
     }
@@ -471,11 +462,11 @@ export function setupStripe(app: Express) {
         ],
         mode: "subscription",
         success_url:
-          req.body.successUrl ||
-          `${req.headers.origin || process.env.SERVER_URL || "https://d8e2de97-e36b-46af-b9f2-7fb97d689ac0-00-2thl7ell4oyj5.spock.replit.dev/"}/subscription/success`,
+          req.body.successUrl || 
+          `${req.headers.origin || process.env.SERVER_URL || "http://localhost:5000"}/subscription/success`,
         cancel_url:
           req.body.cancelUrl ||
-          `${req.headers.origin || process.env.SERVER_URL || "https://d8e2de97-e36b-46af-b9f2-7fb97d689ac0-00-2thl7ell4oyj5.spock.replit.dev/"}/subscription/upgrade`,
+          `${req.headers.origin || process.env.SERVER_URL || "http://localhost:5000"}/subscription/upgrade`,
         metadata: {
           userId: user.id.toString(),
         },

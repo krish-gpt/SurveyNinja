@@ -5,19 +5,33 @@ import cors from "cors";
 
 const app = express();
 
+// Create a webhook handler router with raw body parser for Stripe
+const stripeWebhookRouter = express.Router();
+stripeWebhookRouter.use(express.raw({ type: 'application/json' }));
+app.use('/api/stripe-webhook', stripeWebhookRouter);
+
 // Configure CORS with strict settings
 const corsOptions = {
   origin: process.env.NODE_ENV === "production" 
     ? [process.env.ALLOWED_ORIGIN || "https://formpulse.replit.app"] 
     : ["http://localhost:5000", "http://localhost:3000"],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "stripe-signature"],
   credentials: true,
   maxAge: 86400 // 24 hours in seconds
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
+
+// Use JSON parsing middleware for all routes EXCEPT the Stripe webhook path
+app.use((req, res, next) => {
+  if (req.path === '/api/stripe-webhook') {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
+
 app.use(express.urlencoded({ extended: false }));
 
 // Add security headers
