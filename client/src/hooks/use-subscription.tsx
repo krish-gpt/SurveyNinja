@@ -85,12 +85,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (data) => {
+      // Invalidate queries in sequence to prevent race conditions
       queryClient.invalidateQueries({ queryKey: ["/api/subscription"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "Subscription synchronized",
-        description: data.message || "Your subscription details have been updated",
-      });
+      
+      // Only show toast on manual syncs, not on automatic ones
+      if (data.showToast !== false) {
+        toast({
+          title: "Subscription synchronized",
+          description: data.message || "Your subscription details have been updated",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({

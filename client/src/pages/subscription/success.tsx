@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useSubscription } from '@/hooks/use-subscription';
 import { Button } from '@/components/ui/button';
@@ -12,41 +12,74 @@ export default function SubscriptionSuccessPage() {
   const [isSyncing, setIsSyncing] = useState(true);
   const [syncAttempts, setSyncAttempts] = useState(0);
   const MAX_SYNC_ATTEMPTS = 3;
+  const hasSyncedRef = useRef(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Sync subscription with Stripe upon page load
+  // Sync subscription with Stripe upon page load - only once
   useEffect(() => {
     const syncSubscription = async () => {
+      if (hasSyncedRef.current) return;
+      
+      hasSyncedRef.current = true;
       setIsSyncing(true);
+      
       try {
         await syncSubscriptionMutation.mutateAsync();
-        setIsSyncing(false);
       } catch (error) {
         console.error('Error syncing subscription:', error);
+      } finally {
         setIsSyncing(false);
       }
     };
 
     syncSubscription();
-  }, [syncSubscriptionMutation]);
+    
+    return () => {
+      // Clean up any timers on unmount
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []); // No dependencies - run only once on mount
 
-  // If we still don't have paid status after first sync, try again
+  // Check subscription status and handle retry logic
   useEffect(() => {
-    if (!isSyncing && subscription && subscription.plan !== 'paid' && syncAttempts < MAX_SYNC_ATTEMPTS) {
-      const timer = setTimeout(() => {
-        setSyncAttempts(prev => prev + 1);
-        syncSubscriptionMutation.mutate();
-      }, 2000); // Try again after 2 seconds
-      
-      return () => clearTimeout(timer);
+    // Clear any existing timers when subscription changes
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
-  }, [subscription, isSyncing, syncAttempts, syncSubscriptionMutation]);
 
-  // Redirect if not a paid user after multiple sync attempts
-  useEffect(() => {
-    if (!isSyncing && syncAttempts >= MAX_SYNC_ATTEMPTS && subscription && subscription.plan !== 'paid') {
+    // If we're still syncing, don't do anything
+    if (isSyncing) return;
+    
+    // If we have a paid subscription, no need to retry
+    if (subscription?.plan === 'paid') return;
+    
+    // If we've reached max attempts, redirect to upgrade page
+    if (syncAttempts >= MAX_SYNC_ATTEMPTS) {
       setLocation('/subscription/upgrade');
+      return;
     }
-  }, [subscription, syncAttempts, isSyncing, setLocation]);
+    
+    // Otherwise, schedule another sync attempt
+    if (subscription && subscription.plan !== 'paid') {
+      timerRef.current = setTimeout(() => {
+        setSyncAttempts(prev => prev + 1);
+        setIsSyncing(true);
+        
+        syncSubscriptionMutation.mutateAsync()
+          .catch((error: unknown) => {
+            if (error instanceof Error) {
+              console.error('Error in retry sync:', error.message);
+            } else {
+              console.error('Error in retry sync:', error);
+            }
+          })
+          .finally(() => setIsSyncing(false));
+      }, 2000);
+    }
+  }, [subscription, isSyncing, syncAttempts, setLocation, syncSubscriptionMutation]);
 
   return (
     <div className="min-h-screen bg-gray-50">
