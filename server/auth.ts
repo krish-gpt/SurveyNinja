@@ -117,9 +117,10 @@ export function setupAuth(app: Express) {
     saveUninitialized: false,
     store: storage.sessionStore,
     name: 'formpulse.sid',
+    rolling: true, // Resets the cookie expiration on activity
     cookie: { 
       secure: process.env.NODE_ENV === "production",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours max age
       httpOnly: true,
       sameSite: 'lax'
     }
@@ -129,6 +130,32 @@ export function setupAuth(app: Express) {
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+  
+  // Session absolute timeout middleware (7 days maximum regardless of activity)
+  app.use((req, res, next) => {
+    if (req.isAuthenticated() && req.session.passport) {
+      const SESSION_ABSOLUTE_TIMEOUT = 7 * 24 * 60 * 60 * 1000; // 7 days
+      const sessionCreatedAt = req.session.createdAt || Date.now();
+      
+      if (!req.session.createdAt) {
+        req.session.createdAt = sessionCreatedAt;
+      }
+      
+      const sessionAge = Date.now() - sessionCreatedAt;
+      
+      if (sessionAge > SESSION_ABSOLUTE_TIMEOUT) {
+        // Force logout if absolute session timeout is reached
+        return req.logout((err) => {
+          if (err) return next(err);
+          req.session.destroy((err) => {
+            if (err) return next(err);
+            res.redirect('/auth');
+          });
+        });
+      }
+    }
+    next();
+  });
 
   passport.use(
     new LocalStrategy(
