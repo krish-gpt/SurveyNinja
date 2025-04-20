@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { Express } from "express";
+import express, { Express, Request, Response } from "express";
 import { storage } from "./storage";
 
 // Verify all required Stripe keys are present
@@ -219,8 +219,17 @@ export function setupStripe(app: Express) {
     }
   });
 
+  // Create a separate webhook express router that doesn't use the json middleware
+  const webhookRouter = express.Router();
+  
+  // Use raw body parser for webhook route only
+  webhookRouter.use(express.raw({ type: 'application/json' }));
+  
+  // Register the webhook router for the specific webhook endpoint
+  app.use('/api/stripe-webhook', webhookRouter);
+  
   // Webhook endpoint for Stripe events
-  app.post("/api/stripe-webhook", async (req, res) => {
+  webhookRouter.post("/", async (req: Request, res: Response) => {
     if (!stripe) {
       return res.status(503).json({ message: "Stripe is not configured" });
     }
@@ -233,12 +242,12 @@ export function setupStripe(app: Express) {
 
     try {
       if (endpointSecret) {
-        // Verify webhook signature
+        // Verify webhook signature with raw body buffer
         event = stripe.webhooks.constructEvent(payload, sig, endpointSecret);
       } else {
-        // If no webhook secret, just use the payload directly
+        // If no webhook secret, parse the raw payload
         // (not recommended for production)
-        event = payload;
+        event = JSON.parse(payload.toString());
       }
     } catch (err: any) {
       console.error(`Webhook signature verification failed: ${err.message}`);
@@ -461,8 +470,8 @@ export function setupStripe(app: Express) {
           },
         ],
         mode: "subscription",
-        success_url: req.body.successUrl || `${process.env.SERVER_URL || "https://d8e2de97-e36b-46af-b9f2-7fb97d689ac0-00-2thl7ell4oyj5.spock.replit.dev/"}/subscription/success`,
-        cancel_url: req.body.cancelUrl || `${process.env.SERVER_URL || "https://d8e2de97-e36b-46af-b9f2-7fb97d689ac0-00-2thl7ell4oyj5.spock.replit.dev/"}/subscription/upgrade`,
+        success_url: req.body.successUrl || `${req.headers.origin || process.env.SERVER_URL || "http://localhost:5000"}/subscription/success`,
+        cancel_url: req.body.cancelUrl || `${req.headers.origin || process.env.SERVER_URL || "http://localhost:5000"}/subscription/upgrade`,
         metadata: {
           userId: user.id.toString(),
         },
@@ -521,55 +530,7 @@ export function setupStripe(app: Express) {
     }
   });
 
-  // Create checkout session for subscription
-  app.post("/api/create-checkout-session", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "You must be logged in" });
-    }
-
-    try {
-      const user = req.user;
-
-      // Make sure stripe is initialized before using it
-      if (!stripe) {
-        throw new Error("Stripe is not initialized");
-      }
-
-      // Create a new checkout session
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        mode: "subscription",
-        line_items: [
-          {
-            price: SUBSCRIPTION_PRICE_ID,
-            quantity: 1,
-          },
-        ],
-        success_url:
-          req.body.successUrl || `${req.headers.origin}/subscription/success`,
-        cancel_url:
-          req.body.cancelUrl || `${req.headers.origin}/subscription/upgrade`,
-        customer_email: user.email,
-        client_reference_id: user.id.toString(),
-        subscription_data: {
-          metadata: {
-            userId: user.id.toString(),
-          },
-        },
-        metadata: {
-          userId: user.id.toString(),
-        },
-      });
-
-      res.status(200).json({ sessionId: session.id });
-    } catch (error: any) {
-      console.error("Failed to create checkout session:", error);
-      res.status(500).json({
-        message: "Could not create checkout session",
-        error: error.message,
-      });
-    }
-  });
+  // This duplicate route has been removed to avoid conflicts
 
   // Get subscription status
   app.get("/api/subscription", async (req, res) => {
