@@ -187,3 +187,31 @@ There are no JWT or Bearer tokens to invalidate
 The security relies on proper session destruction, which is implemented correctly
 The session cookie becomes useless after logout as the server no longer recognizes it as authenticated
 Conclusion: The application does not use token-based authentication, so there are no tokens to invalidate. Instead, it correctly implements session-based authentication with proper session invalidation during logout through Passport.js's built-in req.logout() method, which is the appropriate approach for this authentication mechanism.
+
+Krish: If i do not logout and use the browser as is, how long does the session stay active? I recollect i could still acess it next day without logining in again. check if this requires fix, such as session timeout after inactivity
+
+I've found the issue. The session timeout is currently set to 30 days with no activity timeout. Let me explain the problem and suggest a fix:
+
+The issue is:
+
+The session is configured with a fixed maxAge of 30 days
+There is no inactivity timeout - sessions stay active for the full 30 days regardless of user activity
+This is why you can come back the next day without needing to log in again
+This is a security concern because:
+
+Long-lived sessions increase the risk of session hijacking
+If a user's device is compromised, an attacker would have access for up to 30 days
+Best practice is to implement both a maximum session lifetime and an inactivity timeout.
+
+
+Now the application will:
+
+- Expire user sessions after 24 hours of inactivity
+- Force users to re-authenticate after 7 days maximum (even with regular activity)
+- Properly maintain the session during active use
+  
+These changes follow security best practices for session management:
+
+Short inactivity timeout (24 hours)
+Absolute session timeout (7 days)
+Rolling sessions during active use
