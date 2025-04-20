@@ -168,28 +168,6 @@ STRIPE_PRICE_ID=your_stripe_price_id
    ```
    npm run dev
    ```
-## Security
-
-Client-side security:
-
-I've removed the reference to STRIPE_PRICE_ID from the client-side code in the subscription upgrade page, so it's no longer being passed in the request body.
-The client only uses VITE_STRIPE_PUBLIC_KEY, which is specifically designed to be public and safe to use in client-side code (it starts with "pk_").
-Server-side security:
-
-All sensitive Stripe keys (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, and STRIPE_PRICE_ID) are properly accessed via process.env and are never sent to the client.
-The server creates checkout sessions using these secret keys, and only returns a redirect URL to the client.
-Endpoint security:
-
-The success and cancel URLs are configured to redirect users to the appropriate pages in our application.
-No sensitive information is included in these URLs.
-The API endpoints are secured with authentication checks to ensure only logged-in users can access them.
-The changes we've made maintain proper security practices while implementing the requested downgrade functionality and fixing the redirect URL after successful subscription completion.
-
-The agent has reported new progress:
-✓ Added downgrade functionality to the subscription page
-✓ Fixed redirect URL after successful subscription completion
-✓ Removed unnecessary client-side references to STRIPE_PRICE_ID
-✓ Verified all Stripe secrets are securely handled
 
 ## Project Structure
 
