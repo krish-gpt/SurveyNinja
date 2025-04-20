@@ -1,85 +1,62 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useSubscription } from '@/hooks/use-subscription';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
 import Navbar from '@/components/navbar';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function SubscriptionSuccessPage() {
   const [, setLocation] = useLocation();
-  const { subscription, syncSubscriptionMutation } = useSubscription();
+  const { subscription } = useSubscription();
+  const queryClient = useQueryClient();
   const [isSyncing, setIsSyncing] = useState(true);
-  const [syncAttempts, setSyncAttempts] = useState(0);
-  const MAX_SYNC_ATTEMPTS = 3;
-  const hasSyncedRef = useRef(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Sync subscription with Stripe upon page load - only once
+  
+  // Sync subscription with Stripe upon page load - just once
   useEffect(() => {
+    let mounted = true;
+    
     const syncSubscription = async () => {
-      if (hasSyncedRef.current) return;
-      
-      hasSyncedRef.current = true;
-      setIsSyncing(true);
-      
       try {
-        await syncSubscriptionMutation.mutateAsync();
+        setIsSyncing(true);
+        
+        // Manual fetch to avoid complex state updates that might cause infinite loops
+        const response = await fetch('/api/subscription/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          // Manually invalidate queries after successful sync
+          queryClient.invalidateQueries({ queryKey: ['/api/subscription'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+          
+          if (mounted) {
+            setIsSyncing(false);
+          }
+        } else {
+          console.error('Error syncing subscription:', await response.text());
+          if (mounted) {
+            setIsSyncing(false);
+          }
+        }
       } catch (error) {
         console.error('Error syncing subscription:', error);
-      } finally {
-        setIsSyncing(false);
+        if (mounted) {
+          setIsSyncing(false);
+        }
       }
     };
 
     syncSubscription();
     
+    // Cleanup function
     return () => {
-      // Clean up any timers on unmount
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      mounted = false;
     };
-  }, []); // No dependencies - run only once on mount
-
-  // Check subscription status and handle retry logic
-  useEffect(() => {
-    // Clear any existing timers when subscription changes
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-
-    // If we're still syncing, don't do anything
-    if (isSyncing) return;
-    
-    // If we have a paid subscription, no need to retry
-    if (subscription?.plan === 'paid') return;
-    
-    // If we've reached max attempts, redirect to upgrade page
-    if (syncAttempts >= MAX_SYNC_ATTEMPTS) {
-      setLocation('/subscription/upgrade');
-      return;
-    }
-    
-    // Otherwise, schedule another sync attempt
-    if (subscription && subscription.plan !== 'paid') {
-      timerRef.current = setTimeout(() => {
-        setSyncAttempts(prev => prev + 1);
-        setIsSyncing(true);
-        
-        syncSubscriptionMutation.mutateAsync()
-          .catch((error: unknown) => {
-            if (error instanceof Error) {
-              console.error('Error in retry sync:', error.message);
-            } else {
-              console.error('Error in retry sync:', error);
-            }
-          })
-          .finally(() => setIsSyncing(false));
-      }, 2000);
-    }
-  }, [subscription, isSyncing, syncAttempts, setLocation, syncSubscriptionMutation]);
+  }, [queryClient]); // Only depend on queryClient which is stable
 
   return (
     <div className="min-h-screen bg-gray-50">
