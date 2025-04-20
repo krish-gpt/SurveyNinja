@@ -196,7 +196,7 @@ export default function UpgradePage() {
           </Card>
 
           {/* Pro Plan */}
-          <Card className="relative border-primary">
+          <Card className="relative">
             {subscription?.plan === "paid" && (
               <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
                 Current Plan
