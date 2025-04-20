@@ -6,8 +6,17 @@ import { apiRequest } from '@/lib/queryClient';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { loadStripe } from '@stripe/stripe-js';
-import { CheckCircle, X, Loader2 } from 'lucide-react';
+import { CheckCircle, X, Loader2, AlertTriangle } from 'lucide-react';
 import Navbar from '@/components/navbar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
   console.error('Missing Stripe public key!');
@@ -26,6 +35,7 @@ export default function UpgradePage() {
   const [isDowngrading, setIsDowngrading] = useState(false);
   const [syncLoading, setSyncLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [isDowngradeDialogOpen, setIsDowngradeDialogOpen] = useState(false);
   
   // Handle sync with Stripe
   const handleSyncSubscription = async () => {
@@ -82,11 +92,13 @@ export default function UpgradePage() {
     }
   };
   
-  const handleDowngrade = async () => {
-    if (!window.confirm("Are you sure you want to downgrade to the Free plan? You will lose access to premium features and any data exceeding free plan limits may become inaccessible.")) {
-      return;
-    }
-    
+  const handleDowngrade = () => {
+    // Open the confirmation dialog
+    setIsDowngradeDialogOpen(true);
+  };
+  
+  const confirmDowngrade = async () => {
+    setIsDowngradeDialogOpen(false);
     setIsDowngrading(true);
     try {
       await cancelSubscriptionMutation.mutateAsync();
@@ -271,6 +283,39 @@ export default function UpgradePage() {
           </p>
         </div>
       </main>
+      
+      {/* Downgrade Confirmation Dialog */}
+      <Dialog open={isDowngradeDialogOpen} onOpenChange={setIsDowngradeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Confirm Downgrade
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to downgrade to the Free plan? You will lose access to premium features and any data exceeding free plan limits may become inaccessible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-start gap-2 mt-4">
+            <Button
+              type="button"
+              variant="default"
+              onClick={confirmDowngrade}
+              className="w-full sm:w-auto"
+            >
+              Yes, Downgrade
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDowngradeDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
