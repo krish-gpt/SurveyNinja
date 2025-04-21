@@ -6,6 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import Navbar from "@/components/navbar";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -78,107 +79,110 @@ export default function ContactUs() {
   }
 
   return (
-    <div className="container py-10">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Contact Us</h1>
-          <p className="text-muted-foreground mt-2">
-            Have a question or need assistance? We're here to help.
-          </p>
-        </div>
+    <>
+      <Navbar />
+      <div className="container py-10">
+        <div className="max-w-2xl mx-auto">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold tracking-tight">Contact Us</h1>
+            <p className="text-muted-foreground mt-2">
+              Have a question or need assistance? We're here to help.
+            </p>
+          </div>
 
-        {isSubmitted ? (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center text-2xl">Thank You!</CardTitle>
-              <CardDescription className="text-center">
-                Your message has been received. We'll get back to you as soon as possible.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center py-6">
-              <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                <MailIcon className="text-primary h-8 w-8" />
-              </div>
-              <p>Reference number: {new Date().getTime().toString().slice(-8)}</p>
-            </CardContent>
-            <CardFooter className="flex justify-center">
-              <Button onClick={() => setIsSubmitted(false)}>Submit Another Enquiry</Button>
-            </CardFooter>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Get in Touch</CardTitle>
-              <CardDescription>
-                Fill out the form below and our team will get back to you as soon as possible.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="your.email@example.com" 
-                            {...field}
-                            disabled={!!user?.email}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          We'll use this email to respond to your enquiry.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="subject"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Subject</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Brief description of your enquiry" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="message"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Message</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Please provide as much detail as possible..."
-                            className="min-h-[120px]"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={mutation.isPending}
-                  >
-                    {mutation.isPending ? "Submitting..." : "Submit Enquiry"}
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        )}
+          {isSubmitted ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-center text-2xl">Thank You!</CardTitle>
+                <CardDescription className="text-center">
+                  Your message has been received. We'll get back to you as soon as possible.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center py-6">
+                <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                  <MailIcon className="text-primary h-8 w-8" />
+                </div>
+                <p>Reference number: {new Date().getTime().toString().slice(-8)}</p>
+              </CardContent>
+              <CardFooter className="flex justify-center">
+                <Button onClick={() => setIsSubmitted(false)}>Submit Another Enquiry</Button>
+              </CardFooter>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Get in Touch</CardTitle>
+                <CardDescription>
+                  Fill out the form below and our team will get back to you as soon as possible.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="your.email@example.com" 
+                              {...field}
+                              disabled={!!user?.email}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            We'll use this email to respond to your enquiry.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="subject"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Subject</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Brief description of your enquiry" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="message"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Message</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Please provide as much detail as possible..."
+                              className="min-h-[120px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={mutation.isPending}
+                    >
+                      {mutation.isPending ? "Submitting..." : "Submit Enquiry"}
+                    </Button>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
