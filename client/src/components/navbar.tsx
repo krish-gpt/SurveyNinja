@@ -133,9 +133,11 @@ export default function Navbar() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="flex items-center w-full">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link
@@ -214,6 +216,14 @@ export default function Navbar() {
                         )}
                       </div>
 
+                      <Link
+                        href="/profile"
+                        className="px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 block mt-2"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Profile
+                      </Link>
+                      
                       <Link
                         href="/subscription/upgrade"
                         className="px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 block mt-2"
