@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, hashPassword, comparePasswords } from "./auth";
 import { setupStripe, verifySubscriptionStatus } from "./stripe";
-import { insertFormSchema, insertResponseSchema, FormElement } from "@shared/schema";
+import { insertFormSchema, insertResponseSchema, insertSupportEnquirySchema, FormElement } from "@shared/schema";
 import { requirePaidPlan, checkPlanLimits } from "./middleware/subscription-guard";
 
 // Utility functions for premium features
@@ -635,6 +635,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: error.message,
         stack: process.env.NODE_ENV === "development" ? error.stack : undefined
       });
+    }
+  });
+
+  // Support enquiry routes
+  app.post("/api/support", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+    
+    try {
+      const userId = req.user.id;
+      const { email, subject, message } = req.body;
+      
+      // Create support enquiry data
+      const enquiryData = { 
+        userId, 
+        email, 
+        subject, 
+        message 
+      };
+      
+      // Validate enquiry data
+      const parsed = insertSupportEnquirySchema.safeParse(enquiryData);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.format() });
+      }
+      
+      // Create support enquiry
+      const enquiry = await storage.createSupportEnquiry(enquiryData);
+      res.status(201).json(enquiry);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get user's support enquiries
+  app.get("/api/support", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+    
+    try {
+      const userId = req.user.id;
+      const enquiries = await storage.getSupportEnquiries(userId);
+      res.json(enquiries);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 
