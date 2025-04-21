@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth } from "./auth";
+import { setupAuth, hashPassword, comparePasswords } from "./auth";
 import { setupStripe, verifySubscriptionStatus } from "./stripe";
 import { insertFormSchema, insertResponseSchema, FormElement } from "@shared/schema";
 import { requirePaidPlan, checkPlanLimits } from "./middleware/subscription-guard";
@@ -142,6 +142,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up Stripe subscription routes
   setupStripe(app);
+
+  // Profile update route
+  app.put("/api/profile", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+    
+    try {
+      const userId = req.user.id;
+      const { name, email, username, organizationName, industry, currentPassword, newPassword } = req.body;
+      
+      // Create update object with basic fields
+      const updateData: any = {};
+      
+      // Only add fields that are provided
+      if (name !== undefined) updateData.name = name;
+      if (organizationName !== undefined) updateData.organizationName = organizationName;
+      if (industry !== undefined) updateData.industry = industry;
+      
+      // For username and email, we need to check if they're unique
+      if (username !== undefined && username !== req.user.username) {
+        const existingUser = await storage.getUserByUsername(username);
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(400).json({ message: "Username already taken" });
+        }
+        updateData.username = username;
+      }
+      
+      if (email !== undefined && email !== req.user.email) {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(400).json({ message: "Email already in use" });
+        }
+        updateData.email = email;
+      }
+      
+      // Handle password update if provided
+      if (newPassword && currentPassword) {
+        // Verify current password
+        const passwordMatch = await comparePasswords(currentPassword, req.user.password);
+        if (!passwordMatch) {
+          return res.status(400).json({ message: "Current password is incorrect" });
+        }
+        
+        // Hash the new password
+        updateData.password = await hashPassword(newPassword);
+      } else if ((newPassword && !currentPassword) || (!newPassword && currentPassword)) {
+        return res.status(400).json({ message: "Both current and new password are required to update password" });
+      }
+      
+      // Update user in database
+      const updatedUser = await storage.updateUser(userId, updateData);
+      
+      // Remove sensitive information before returning
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      res.json(userWithoutPassword);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
   // Apply plan limits check to all routes
   app.use(['/api/forms'], checkPlanLimits);
