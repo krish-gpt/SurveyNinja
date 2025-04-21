@@ -17,7 +17,7 @@ import {
   Bell,
   User,
   LogOut,
-  Settings,
+  MessageSquare,
   CreditCard,
   Sparkles,
 } from "lucide-react";
@@ -148,9 +148,11 @@ export default function Navbar() {
                     <span>Subscription</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
+                <DropdownMenuItem asChild>
+                  <Link href="/contact" className="flex items-center w-full">
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    <span>Contact Us</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>
@@ -230,6 +232,14 @@ export default function Navbar() {
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Manage Subscription
+                      </Link>
+                      
+                      <Link
+                        href="/contact"
+                        className="px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 block mt-2"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Contact Us
                       </Link>
 
                       <button

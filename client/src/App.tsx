@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import AuthPage from "@/pages/auth-page";
 import Profile from "@/pages/profile";
+import ContactUs from "@/pages/contact-us";
 import FormsPage from "@/pages/forms";
 import FormBuilder from "@/pages/forms/form-builder";
 import FormView from "@/pages/forms/form-view";
@@ -26,6 +27,7 @@ function Router() {
       <ProtectedRoute path="/" component={Dashboard} />
       <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/profile" component={Profile} />
+      <ProtectedRoute path="/contact" component={ContactUs} />
       <ProtectedRoute path="/forms" component={FormsPage} />
       <ProtectedRoute path="/forms/new" component={FormBuilder} />
       <ProtectedRoute path="/forms/:id/edit" component={FormBuilder} />
