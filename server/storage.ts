@@ -1,4 +1,4 @@
-import { forms, users, responses, type User, type InsertUser, type Form, type InsertForm, type Response, type InsertResponse } from "@shared/schema";
+import { forms, users, responses, supportEnquiries, type User, type InsertUser, type Form, type InsertForm, type Response, type InsertResponse, type SupportEnquiry, type InsertSupportEnquiry } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { db } from "./db";
@@ -33,6 +33,12 @@ export interface IStorage {
   getResponse(id: number): Promise<Response | undefined>;
   createResponse(response: InsertResponse): Promise<Response>;
   getResponsesCount(formId: number): Promise<number>;
+  
+  // Support enquiry operations
+  getSupportEnquiries(userId?: number): Promise<SupportEnquiry[]>;
+  getSupportEnquiry(id: number): Promise<SupportEnquiry | undefined>;
+  createSupportEnquiry(enquiry: InsertSupportEnquiry): Promise<SupportEnquiry>;
+  updateSupportEnquiryStatus(id: number, status: string): Promise<SupportEnquiry>;
   
   // Session store
   sessionStore: any; // Using any type to avoid TypeScript issues with the session store
@@ -256,6 +262,53 @@ export class DatabaseStorage implements IStorage {
       .where(eq(responses.formId, formId));
     
     return result.length;
+  }
+
+  // Support enquiry operations
+  async getSupportEnquiries(userId?: number): Promise<SupportEnquiry[]> {
+    if (userId) {
+      return db
+        .select()
+        .from(supportEnquiries)
+        .where(eq(supportEnquiries.userId, userId))
+        .orderBy(desc(supportEnquiries.createdAt));
+    } else {
+      return db
+        .select()
+        .from(supportEnquiries)
+        .orderBy(desc(supportEnquiries.createdAt));
+    }
+  }
+
+  async getSupportEnquiry(id: number): Promise<SupportEnquiry | undefined> {
+    const [enquiry] = await db
+      .select()
+      .from(supportEnquiries)
+      .where(eq(supportEnquiries.id, id));
+    return enquiry;
+  }
+
+  async createSupportEnquiry(insertEnquiry: InsertSupportEnquiry): Promise<SupportEnquiry> {
+    const [enquiry] = await db
+      .insert(supportEnquiries)
+      .values(insertEnquiry)
+      .returning();
+    
+    return enquiry;
+  }
+
+  async updateSupportEnquiryStatus(id: number, status: string): Promise<SupportEnquiry> {
+    const [updatedEnquiry] = await db
+      .update(supportEnquiries)
+      .set({ status })
+      .where(eq(supportEnquiries.id, id))
+      .returning();
+    
+    if (!updatedEnquiry) {
+      throw new Error(`Support enquiry with ID ${id} not found`);
+    }
+    
+    return updatedEnquiry;
   }
 }
 

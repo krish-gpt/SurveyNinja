@@ -51,9 +51,27 @@ export const responses = pgTable("responses", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Support enquiries model
+export const supportEnquiries = pgTable("support_enquiries", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  email: text("email").notNull(),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  status: text("status").default("new").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertResponseSchema = createInsertSchema(responses).pick({
   formId: true,
   data: true,
+});
+
+export const insertSupportEnquirySchema = createInsertSchema(supportEnquiries).pick({
+  userId: true,
+  email: true,
+  subject: true,
+  message: true,
 });
 
 // Element types for form builder
@@ -95,3 +113,5 @@ export type Form = typeof forms.$inferSelect;
 export type InsertForm = z.infer<typeof insertFormSchema>;
 export type Response = typeof responses.$inferSelect;
 export type InsertResponse = z.infer<typeof insertResponseSchema>;
+export type SupportEnquiry = typeof supportEnquiries.$inferSelect;
+export type InsertSupportEnquiry = z.infer<typeof insertSupportEnquirySchema>;
