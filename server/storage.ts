@@ -15,6 +15,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(userId: number, userData: Partial<User>): Promise<User>;
   updateUserPlan(userId: number, plan: string): Promise<User>;
   updateUserStripeInfo(userId: number, stripeInfo: { customerId: string | null, subscriptionId: string | null, paymentDate?: Date }): Promise<User>;
   
@@ -78,6 +79,31 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+  
+  async updateUser(userId: number, userData: Partial<User>): Promise<User> {
+    // Filter out sensitive fields like password, plan, and stripe data
+    const safeUpdateData: Partial<User> = {};
+    
+    // Only allow updating specific user fields
+    if (userData.username !== undefined) safeUpdateData.username = userData.username;
+    if (userData.email !== undefined) safeUpdateData.email = userData.email;
+    if (userData.name !== undefined) safeUpdateData.name = userData.name;
+    if (userData.organizationName !== undefined) safeUpdateData.organizationName = userData.organizationName;
+    if (userData.industry !== undefined) safeUpdateData.industry = userData.industry;
+    if (userData.password !== undefined) safeUpdateData.password = userData.password;
+    
+    const [updatedUser] = await db
+      .update(users)
+      .set(safeUpdateData)
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updatedUser) {
+      throw new Error(`User with ID ${userId} not found`);
+    }
+    
+    return updatedUser;
   }
 
   async updateUserPlan(userId: number, plan: string): Promise<User> {
