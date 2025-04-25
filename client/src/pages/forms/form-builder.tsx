@@ -60,8 +60,8 @@ export default function FormBuilder() {
     enabled: isEditMode && !!user && !!form,
   });
   
-  // Form is considered a draft if it has no responses
-  const isDraftForm = responsesData?.total === 0;
+  // Form is considered a draft if it has no responses and is not published
+  const isDraftForm = responsesData?.total === 0 && form?.status !== "published";
 
   // Publish form mutation
   const publishFormMutation = useMutation({
@@ -320,7 +320,7 @@ export default function FormBuilder() {
                   Preview
                 </Button>
                 {/* Show Publish button only if form is not already published */}
-                {(!isPublished) && (
+                {(form?.status !== "published") && (
                   <Button 
                     variant="outline" 
                     size="sm"

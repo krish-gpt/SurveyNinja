@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   FilePlus,
   FileEdit,
@@ -169,9 +170,14 @@ export default function FormsPage() {
                 <Card key={form.id} className="bg-white divide-y divide-gray-200">
                   <CardHeader className="px-4 py-5 sm:px-6 flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg font-medium text-gray-900 truncate">
-                        {form.title}
-                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg font-medium text-gray-900 truncate">
+                          {form.title}
+                        </CardTitle>
+                        <Badge variant={form.status === 'published' ? 'success' : 'outline'} className="text-xs">
+                          {form.status === 'published' ? 'Published' : 'Draft'}
+                        </Badge>
+                      </div>
                       <CardDescription className="mt-1">
                         {form.responseCount} responses
                       </CardDescription>
@@ -188,9 +194,13 @@ export default function FormsPage() {
                             <FileEdit className="h-4 w-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleShareForm(form.id)}>
+                          <DropdownMenuItem 
+                            onClick={form.status === 'published' ? () => handleShareForm(form.id) : undefined}
+                            disabled={form.status !== 'published'}
+                            className={form.status !== 'published' ? 'text-gray-300 cursor-not-allowed' : ''}
+                          >
                             <Share2 className="h-4 w-4 mr-2" />
-                            Share
+                            Share{form.status !== 'published' ? ' (Publish first)' : ''}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleDeleteForm(form.id)}
@@ -225,8 +235,10 @@ export default function FormsPage() {
                       
                       <Button
                         variant="link"
-                        className="font-medium text-gray-500 hover:text-gray-700 p-0"
-                        onClick={() => handleShareForm(form.id)}
+                        className={`font-medium p-0 ${form.status === 'published' ? 'text-gray-500 hover:text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+                        onClick={form.status === 'published' ? () => handleShareForm(form.id) : undefined}
+                        disabled={form.status !== 'published'}
+                        title={form.status !== 'published' ? 'You must publish this form before sharing' : 'Share this form'}
                       >
                         Share <Share2 className="h-4 w-4 ml-1" />
                       </Button>
