@@ -57,7 +57,18 @@ export default function FormCanvas({
         required: false,
         options: ["multiple-choice", "checkbox", "dropdown"].includes(elementType) ? ["Option 1", "Option 2", "Option 3"] : undefined,
         properties: {},
+        conditionLogic: "AND", // Default condition logic if needed
+        conditions: [], // Empty conditions array
       };
+      
+      // Initialize calculation object for calculation elements
+      if (elementType === "calculation") {
+        newElement.calculation = {
+          formula: "",
+          format: "number",
+          precision: 2
+        };
+      }
       
       onAddElement(newElement);
     }
@@ -115,66 +126,105 @@ export default function FormCanvas({
         </Card>
 
         {/* Form elements */}
-        {elements.map((element) => (
-          <Card 
-            key={element.id}
-            className={`bg-white rounded-lg shadow-sm border p-6 ${
-              selectedElementId === element.id 
-                ? "border-primary-500 ring-2 ring-primary-500" 
-                : "border-gray-200 hover:border-primary-300"
-            }`}
-            onClick={() => onSelectElement(element)}
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1">
-                <Input
-                  type="text"
-                  value={element.label}
-                  onChange={(e) => onUpdateElement(element.id, { ...element, label: e.target.value })}
-                  className="border-0 focus:ring-0 text-base font-medium text-gray-900 w-full focus:outline-none"
-                  placeholder="Question Text"
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <div className="text-sm text-gray-500 mt-1">
-                  {element.required ? "Required" : "Optional"}
+        {elements.map((element) => {
+          // Check for conditional logic or calculation
+          const hasConditions = element.conditions && element.conditions.length > 0;
+          const isCalculation = element.type === "calculation";
+          
+          // Determine class for card border
+          let cardBorderClass = "border-gray-200 hover:border-primary-300";
+          if (selectedElementId === element.id) {
+            cardBorderClass = "border-primary-500 ring-2 ring-primary-500";
+          } else if (hasConditions) {
+            cardBorderClass = "border-l-4 border-l-amber-400 border-gray-200 hover:border-primary-300";
+          } else if (isCalculation) {
+            cardBorderClass = "border-l-4 border-l-blue-400 border-gray-200 hover:border-primary-300";
+          }
+          
+          return (
+            <Card 
+              key={element.id}
+              className={`bg-white rounded-lg shadow-sm border p-6 ${cardBorderClass}`}
+              onClick={() => onSelectElement(element)}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center">
+                    <Input
+                      type="text"
+                      value={element.label}
+                      onChange={(e) => onUpdateElement(element.id, { ...element, label: e.target.value })}
+                      className="border-0 focus:ring-0 text-base font-medium text-gray-900 w-full focus:outline-none"
+                      placeholder="Question Text"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    
+                    {/* Display badges for special field types */}
+                    <div className="flex ml-2 space-x-2">
+                      {hasConditions && (
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                          Conditional
+                        </Badge>
+                      )}
+                      {isCalculation && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          <Calculator className="h-3 w-3 mr-1" />
+                          Calculation
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500 mt-1">
+                    {element.required ? "Required" : "Optional"}
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDuplicateElement(element.id);
+                    }}
+                  >
+                    <Copy className="h-4 w-4 text-gray-500" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveElement(element.id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 text-gray-500" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                  >
+                    <MoreVertical className="h-4 w-4 text-gray-500" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex space-x-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDuplicateElement(element.id);
-                  }}
-                >
-                  <Copy className="h-4 w-4 text-gray-500" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveElement(element.id);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 text-gray-500" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                >
-                  <MoreVertical className="h-4 w-4 text-gray-500" />
-                </Button>
-              </div>
-            </div>
 
-            <FormElements element={element} />
-          </Card>
-        ))}
+              <FormElements element={element} />
+              
+              {/* Show conditional logic info */}
+              {hasConditions && (
+                <div className="mt-3 pt-3 border-t border-dashed border-amber-200 text-xs text-amber-700">
+                  <p className="flex items-center">
+                    <EyeOff className="h-3 w-3 mr-1" />
+                    This field has conditional display rules
+                  </p>
+                </div>
+              )}
+            </Card>
+          );
+        })}
 
         {/* Drop indicator zone */}
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
