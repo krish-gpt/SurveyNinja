@@ -369,8 +369,8 @@ export default function FormBuilder() {
       <Navbar />
       
       <div className="flex-1 flex">
-        {/* Left sidebar (form elements) */}
-        <ElementSidebar onDragStart={handleDragStart} />
+        {/* Left sidebar (form elements) - only shown for non-closed forms */}
+        {!isClosedForm && <ElementSidebar onDragStart={handleDragStart} />}
 
         {/* Main form building area */}
         <div className="flex-1 flex flex-col">
@@ -396,177 +396,232 @@ export default function FormBuilder() {
                 )}
               </div>
               <div className="flex space-x-3">
-                {/* 1. Save button */}
-                <Button 
-                  size="sm" 
-                  onClick={handleSaveForm}
-                  disabled={saveFormMutation.isPending || deleteFormMutation.isPending}
-                >
-                  {saveFormMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save
-                    </>
-                  )}
-                </Button>
-                
-                {/* 2. Preview button */}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handlePreviewForm}
-                  disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending || unpublishFormMutation.isPending}
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  Preview
-                </Button>
-                
-                {/* 3. Publish button only if form is not already published */}
-                {(form?.status !== "published") && (
+                {/* For closed forms, only show view responses button */}
+                {isClosedForm ? (
                   <Button 
                     variant="outline" 
-                    size="sm"
-                    onClick={handlePublishForm}
-                    disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending || unpublishFormMutation.isPending}
-                    className="text-green-600 border-green-600 hover:bg-green-50"
+                    size="sm" 
+                    onClick={handlePreviewForm}
                   >
-                    {publishFormMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Publishing...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="mr-2 h-4 w-4" />
-                        Publish
-                      </>
-                    )}
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Form
                   </Button>
-                )}
-                
-                {/* Show Unpublish and Close buttons only for published forms */}
-                {form?.status === "published" && (
+                ) : (
                   <>
+                    {/* 1. Save button */}
                     <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleUnpublishForm}
-                      disabled={saveFormMutation.isPending || unpublishFormMutation.isPending || closeFormMutation.isPending}
-                      className="text-amber-600 border-amber-600 hover:bg-amber-50"
+                      size="sm" 
+                      onClick={handleSaveForm}
+                      disabled={saveFormMutation.isPending || deleteFormMutation.isPending}
                     >
-                      {unpublishFormMutation.isPending ? (
+                      {saveFormMutation.isPending ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Unpublishing...
+                          Saving...
                         </>
                       ) : (
                         <>
-                          <CirclePause className="mr-2 h-4 w-4" />
-                          Unpublish
+                          <Save className="mr-2 h-4 w-4" />
+                          Save
                         </>
                       )}
                     </Button>
                     
+                    {/* 2. Preview button */}
                     <Button 
                       variant="outline" 
-                      size="sm"
-                      onClick={handleCloseForm}
-                      disabled={saveFormMutation.isPending || unpublishFormMutation.isPending || closeFormMutation.isPending}
-                      className="text-red-500 border-red-500 hover:bg-red-50"
+                      size="sm" 
+                      onClick={handlePreviewForm}
+                      disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending || unpublishFormMutation.isPending}
                     >
-                      {closeFormMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Closing...
-                        </>
-                      ) : (
-                        <>
-                          <Lock className="mr-2 h-4 w-4" />
-                          Close Form
-                        </>
-                      )}
+                      <Eye className="mr-2 h-4 w-4" />
+                      Preview
                     </Button>
-                  </>
-                )}
-                
-                {/* 4. Delete button only for draft forms */}
-                {isEditMode && isDraftForm && (
-                  <Button 
-                    variant="outline"
-                    size="sm" 
-                    onClick={handleDeleteForm}
-                    disabled={saveFormMutation.isPending || deleteFormMutation.isPending || unpublishFormMutation.isPending}
-                    className="text-red-500 border-red-500 hover:bg-red-50"
-                  >
-                    {deleteFormMutation.isPending ? (
+                    
+                    {/* 3. Publish button only if form is not already published */}
+                    {(form?.status !== "published") && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handlePublishForm}
+                        disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending || unpublishFormMutation.isPending}
+                        className="text-green-600 border-green-600 hover:bg-green-50"
+                      >
+                        {publishFormMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Publishing...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="mr-2 h-4 w-4" />
+                            Publish
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    
+                    {/* Show Unpublish and Close buttons only for published forms */}
+                    {form?.status === "published" && (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Deleting...
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleUnpublishForm}
+                          disabled={saveFormMutation.isPending || unpublishFormMutation.isPending || closeFormMutation.isPending}
+                          className="text-amber-600 border-amber-600 hover:bg-amber-50"
+                        >
+                          {unpublishFormMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Unpublishing...
+                            </>
+                          ) : (
+                            <>
+                              <CirclePause className="mr-2 h-4 w-4" />
+                              Unpublish
+                            </>
+                          )}
+                        </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleCloseForm}
+                          disabled={saveFormMutation.isPending || unpublishFormMutation.isPending || closeFormMutation.isPending}
+                          className="text-red-500 border-red-500 hover:bg-red-50"
+                        >
+                          {closeFormMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Closing...
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="mr-2 h-4 w-4" />
+                              Close Form
+                            </>
+                          )}
+                        </Button>
                       </>
                     )}
-                  </Button>
+                    
+                    {/* 4. Delete button only for draft forms */}
+                    {isEditMode && isDraftForm && (
+                      <Button 
+                        variant="outline"
+                        size="sm" 
+                        onClick={handleDeleteForm}
+                        disabled={saveFormMutation.isPending || deleteFormMutation.isPending || unpublishFormMutation.isPending}
+                        className="text-red-500 border-red-500 hover:bg-red-50"
+                      >
+                        {deleteFormMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
             
-            {/* Form settings tabs */}
-            <div className="px-4 pb-2 border-b border-gray-200">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-[400px] grid-cols-3">
-                  <TabsTrigger value="build">Build</TabsTrigger>
-                  <TabsTrigger value="design">Design</TabsTrigger>
-                  <TabsTrigger value="logic">Logic</TabsTrigger>
-                </TabsList>
+            {/* Form settings tabs - Hide tabs for closed forms */}
+            {isClosedForm ? (
+              <div className="px-4 py-4">
+                <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <Lock className="h-5 w-5 text-red-400" aria-hidden="true" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">Form is closed</h3>
+                      <div className="mt-2 text-sm text-red-700">
+                        <p>
+                          This form has been closed and can no longer be edited or receive new responses.
+                          You can still view all collected responses.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  {/* Read-only view of form elements */}
+                  <h2 className="text-xl font-medium mb-4">{formTitle}</h2>
+                  {formDescription && <p className="text-gray-600 mb-6">{formDescription}</p>}
+                  
+                  <div className="space-y-6">
+                    {formElements.map((element) => (
+                      <div key={element.id} className="border border-gray-200 rounded-md p-4 bg-white">
+                        <h3 className="font-medium">{element.label}</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Type: {element.type.charAt(0).toUpperCase() + element.type.slice(1)}
+                          {element.required && ' • Required'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="px-4 pb-2 border-b border-gray-200">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-[400px] grid-cols-3">
+                    <TabsTrigger value="build">Build</TabsTrigger>
+                    <TabsTrigger value="design">Design</TabsTrigger>
+                    <TabsTrigger value="logic">Logic</TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="build" className="mt-4 flex-1 flex">
-                  <FormCanvas
-                    formTitle={formTitle}
-                    formDescription={formDescription}
-                    elements={formElements}
-                    onUpdateTitle={setFormTitle}
-                    onUpdateDescription={setFormDescription}
-                    onAddElement={handleAddElement}
-                    onUpdateElement={handleUpdateElement}
-                    onDuplicateElement={handleDuplicateElement}
-                    onRemoveElement={handleRemoveElement}
-                    onSelectElement={handleSelectElement}
-                    selectedElementId={selectedElement?.id || null}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="design" className="mt-4 p-6">
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-lg font-medium mb-4">Design Settings</h2>
-                    <p className="text-gray-500">Customize the look and feel of your form (Coming soon)</p>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="logic" className="mt-4 p-6">
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-lg font-medium mb-4">Form Logic</h2>
-                    <p className="text-gray-500">Add conditional logic to your form (Coming soon)</p>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
+                  <TabsContent value="build" className="mt-4 flex-1 flex">
+                    <FormCanvas
+                      formTitle={formTitle}
+                      formDescription={formDescription}
+                      elements={formElements}
+                      onUpdateTitle={setFormTitle}
+                      onUpdateDescription={setFormDescription}
+                      onAddElement={handleAddElement}
+                      onUpdateElement={handleUpdateElement}
+                      onDuplicateElement={handleDuplicateElement}
+                      onRemoveElement={handleRemoveElement}
+                      onSelectElement={handleSelectElement}
+                      selectedElementId={selectedElement?.id || null}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="design" className="mt-4 p-6">
+                    <div className="bg-white rounded-lg shadow p-6">
+                      <h2 className="text-lg font-medium mb-4">Design Settings</h2>
+                      <p className="text-gray-500">Customize the look and feel of your form (Coming soon)</p>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="logic" className="mt-4 p-6">
+                    <div className="bg-white rounded-lg shadow p-6">
+                      <h2 className="text-lg font-medium mb-4">Form Logic</h2>
+                      <p className="text-gray-500">Add conditional logic to your form (Coming soon)</p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right sidebar (element properties) */}
-        <ElementProperties
-          selectedElement={selectedElement}
-          onUpdateElement={handleUpdateElementFromProperties}
-        />
+        {/* Right sidebar (element properties) - hide for closed forms */}
+        {!isClosedForm && (
+          <ElementProperties
+            selectedElement={selectedElement}
+            onUpdateElement={handleUpdateElementFromProperties}
+          />
+        )}
       </div>
       
       {/* Delete Form Confirmation Dialog */}
