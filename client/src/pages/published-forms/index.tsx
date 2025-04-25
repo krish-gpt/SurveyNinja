@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import Navbar from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, ChevronRight, Loader2, Edit, Share2, FileEdit, FilePlus, Ellipsis } from "lucide-react";
+import { BarChart, ChevronRight, Loader2, Edit, Share2, FileEdit, FilePlus, Ellipsis, Lock } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ShareFormModal from "@/components/share-form-modal";
 import { Badge } from "@/components/ui/badge";
@@ -35,8 +35,8 @@ export default function PublishedFormsPage() {
     enabled: !!user,
   });
 
-  // Filter to only show published forms based on status
-  const publishedForms = allForms.filter(form => form.status === "published");
+  // Filter to show both published and closed forms
+  const publishedForms = allForms.filter(form => form.status === "published" || form.status === "closed");
   
   const handleEditForm = (id: number) => {
     setLocation(`/forms/${id}/edit`);
@@ -70,9 +70,9 @@ export default function PublishedFormsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="md:flex md:items-center md:justify-between mb-6">
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-semibold text-gray-900">Published Forms</h1>
+              <h1 className="text-2xl font-semibold text-gray-900">Active Forms</h1>
               <p className="mt-1 text-sm text-gray-500">
-                View and manage your published forms
+                View and manage your published and closed forms
               </p>
             </div>
           </div>
@@ -83,9 +83,9 @@ export default function PublishedFormsPage() {
               <Card>
                 <CardContent className="flex flex-col items-center justify-center p-12">
                   <BarChart className="h-12 w-12 text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900">No published forms yet</h3>
+                  <h3 className="text-lg font-medium text-gray-900">No active forms yet</h3>
                   <p className="text-gray-500 text-center mt-2">
-                    Forms appear here once they've been published
+                    Published and closed forms appear here
                   </p>
                   <div className="mt-6">
                     <Link href="/forms">
@@ -105,9 +105,16 @@ export default function PublishedFormsPage() {
                         <CardTitle className="text-lg font-medium text-gray-900 truncate">
                           {form.title}
                         </CardTitle>
-                        <Badge variant="success" className="text-xs">
-                          Published
-                        </Badge>
+                        {form.status === "published" ? (
+                          <Badge variant="success" className="text-xs">
+                            Published
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-xs flex items-center">
+                            <Lock className="w-3 h-3 mr-1" />
+                            Closed
+                          </Badge>
+                        )}
                       </div>
                       <CardDescription className="mt-1">
                         {form.responseCount} responses
@@ -121,45 +128,61 @@ export default function PublishedFormsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEditForm(form.id)}>
-                            <FileEdit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
+                          {form.status === "published" && (
+                            <DropdownMenuItem onClick={() => handleEditForm(form.id)}>
+                              <FileEdit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => handleViewResponses(form.id)}>
                             <FilePlus className="h-4 w-4 mr-2" />
                             View Responses
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleShareForm(form.id)}>
-                            <Share2 className="h-4 w-4 mr-2" />
-                            Share
-                          </DropdownMenuItem>
+                          {form.status === "published" && (
+                            <DropdownMenuItem onClick={() => handleShareForm(form.id)}>
+                              <Share2 className="h-4 w-4 mr-2" />
+                              Share
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
                   </CardHeader>
                   <CardFooter className="px-4 py-4 sm:px-6 bg-gray-50">
                     <div className="flex justify-between text-sm w-full">
-                      <Button
-                        variant="link"
-                        className="font-medium text-primary hover:text-primary/80 p-0"
-                        onClick={() => handleEditForm(form.id)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="link"
-                        className="font-medium text-primary hover:text-primary/80 p-0"
-                        onClick={() => handleViewResponses(form.id)}
-                      >
-                        View Responses
-                      </Button>
-                      <Button
-                        variant="link"
-                        className="font-medium text-gray-500 hover:text-gray-700 p-0"
-                        onClick={() => handleShareForm(form.id)}
-                      >
-                        Share <Share2 className="h-4 w-4 ml-1" />
-                      </Button>
+                      {form.status === "published" ? (
+                        <>
+                          <Button
+                            variant="link"
+                            className="font-medium text-primary hover:text-primary/80 p-0"
+                            onClick={() => handleEditForm(form.id)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="link"
+                            className="font-medium text-primary hover:text-primary/80 p-0"
+                            onClick={() => handleViewResponses(form.id)}
+                          >
+                            View Responses
+                          </Button>
+                          <Button
+                            variant="link"
+                            className="font-medium text-gray-500 hover:text-gray-700 p-0"
+                            onClick={() => handleShareForm(form.id)}
+                          >
+                            Share <Share2 className="h-4 w-4 ml-1" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="link"
+                          className="font-medium text-primary hover:text-primary/80 p-0 mx-auto"
+                          onClick={() => handleViewResponses(form.id)}
+                        >
+                          View Responses
+                        </Button>
+                      )}
                     </div>
                   </CardFooter>
                 </Card>
