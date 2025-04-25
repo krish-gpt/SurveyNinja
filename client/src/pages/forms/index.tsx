@@ -203,25 +203,25 @@ export default function FormsPage() {
                     </div>
                   </CardHeader>
                   <CardFooter className="px-4 py-4 sm:px-6 bg-gray-50">
-                    <div className="flex justify-between text-sm w-full">
-                      <div className="flex space-x-4">
-                        <Button
-                          variant="link"
-                          className="font-medium text-primary hover:text-primary/80 p-0"
-                          onClick={() => handleEditForm(form.id)}
-                        >
-                          <FileEdit className="h-4 w-4 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="link"
-                          className="font-medium text-red-500 hover:text-red-600 p-0"
-                          onClick={() => handleDeleteForm(form.id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
-                        </Button>
-                      </div>
+                    <div className="flex justify-between items-center text-sm w-full">
+                      <Button
+                        variant="link"
+                        className="font-medium text-primary hover:text-primary/80 p-0"
+                        onClick={() => handleEditForm(form.id)}
+                      >
+                        <FileEdit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      
+                      <Button
+                        variant="link"
+                        className="font-medium text-red-500 hover:text-red-600 p-0"
+                        onClick={() => handleDeleteForm(form.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
+                      </Button>
+                      
                       <Button
                         variant="link"
                         className="font-medium text-gray-500 hover:text-gray-700 p-0"
