@@ -44,8 +44,7 @@ export default function FormBuilder() {
     enabled: isEditMode && !!user,
   });
   
-  // Check if form is published
-  const isPublished = form?.status === "published";
+  // Form status is checked directly where needed in the UI
 
   // Fetch responses count to determine if the form is a draft (can be deleted)
   // Using the same endpoint we use for responses, but we only need the total count
@@ -81,6 +80,30 @@ export default function FormBuilder() {
     onError: (error: Error) => {
       toast({
         title: "Error publishing form",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Unpublish form mutation
+  const unpublishFormMutation = useMutation({
+    mutationFn: async () => {
+      if (!id) return;
+      const res = await apiRequest("PATCH", `/api/forms/${id}`, { status: "draft" });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/forms/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/forms"] });
+      toast({
+        title: "Form unpublished",
+        description: "Your form has been unpublished and is no longer accepting responses",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error unpublishing form",
         description: error.message,
         variant: "destructive",
       });
@@ -276,6 +299,20 @@ export default function FormBuilder() {
     handleSaveForm();
     publishFormMutation.mutate();
   };
+  
+  // Handle unpublish form
+  const handleUnpublishForm = () => {
+    // Check if form has responses
+    if (responsesData && responsesData.total > 0) {
+      toast({
+        title: "Warning",
+        description: "Unpublishing this form will prevent new responses. Existing responses will be preserved.",
+      });
+    }
+    
+    // Unpublish the form
+    unpublishFormMutation.mutate();
+  };
 
   if (isLoadingForm) {
     return (
@@ -314,7 +351,7 @@ export default function FormBuilder() {
                   variant="outline" 
                   size="sm" 
                   onClick={handlePreviewForm}
-                  disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending}
+                  disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending || unpublishFormMutation.isPending}
                 >
                   <Eye className="mr-2 h-4 w-4" />
                   Preview
@@ -325,7 +362,7 @@ export default function FormBuilder() {
                     variant="outline" 
                     size="sm"
                     onClick={handlePublishForm}
-                    disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending}
+                    disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending || unpublishFormMutation.isPending}
                     className="text-green-600 border-green-600 hover:bg-green-50"
                   >
                     {publishFormMutation.isPending ? (
@@ -341,13 +378,35 @@ export default function FormBuilder() {
                     )}
                   </Button>
                 )}
+                {/* Show Unpublish button only for published forms */}
+                {form?.status === "published" && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleUnpublishForm}
+                    disabled={saveFormMutation.isPending || unpublishFormMutation.isPending}
+                    className="text-amber-600 border-amber-600 hover:bg-amber-50"
+                  >
+                    {unpublishFormMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Unpublishing...
+                      </>
+                    ) : (
+                      <>
+                        <PauseCircle className="mr-2 h-4 w-4" />
+                        Unpublish
+                      </>
+                    )}
+                  </Button>
+                )}
                 {/* Show Delete button only for draft forms */}
                 {isEditMode && isDraftForm && (
                   <Button 
                     variant="outline"
                     size="sm" 
                     onClick={handleDeleteForm}
-                    disabled={saveFormMutation.isPending || deleteFormMutation.isPending}
+                    disabled={saveFormMutation.isPending || deleteFormMutation.isPending || unpublishFormMutation.isPending}
                     className="text-red-500 border-red-500 hover:bg-red-50"
                   >
                     {deleteFormMutation.isPending ? (

@@ -382,6 +382,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You do not have access to this form" });
       }
       
+      // Check if form is published
+      if (form.status === "published") {
+        return res.status(403).json({ 
+          message: "Published forms cannot be deleted to maintain data integrity. Unpublish the form first."
+        });
+      }
+      
+      // Check if form has responses
+      const responseCount = await storage.getResponsesCount(formId);
+      if (responseCount > 0) {
+        return res.status(403).json({
+          message: "Forms with responses cannot be deleted to preserve response data."
+        });
+      }
+      
       // Delete form
       await storage.deleteForm(formId);
       res.status(204).end();
