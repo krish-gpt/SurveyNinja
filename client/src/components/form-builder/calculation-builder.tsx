@@ -9,10 +9,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, Calculator } from "lucide-react";
 
+// Define the calculation type for better TypeScript safety
+type CalculationFormat = "number" | "currency" | "percentage";
+
+type Calculation = {
+  formula: string;
+  format: CalculationFormat;
+  precision: number;
+};
+
 interface CalculationBuilderProps {
   selectedElement: FormElement;
   formElements: FormElement[];
-  onUpdateCalculation: (calculation: any) => void;
+  onUpdateCalculation: (calculation: Calculation) => void;
 }
 
 export default function CalculationBuilder({
@@ -31,7 +40,9 @@ export default function CalculationBuilder({
   
   // Initialize calculation state
   const [formula, setFormula] = useState(selectedElement.calculation?.formula || "");
-  const [format, setFormat] = useState(selectedElement.calculation?.format || "number");
+  const [format, setFormat] = useState<CalculationFormat>(
+    (selectedElement.calculation?.format as CalculationFormat) || "number"
+  );
   const [precision, setPrecision] = useState(selectedElement.calculation?.precision?.toString() || "2");
   
   // Update calculation
@@ -139,7 +150,7 @@ export default function CalculationBuilder({
         <Label>Format</Label>
         <Select
           value={format}
-          onValueChange={(value) => setFormat(value)}
+          onValueChange={(value: CalculationFormat) => setFormat(value)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select format" />
@@ -156,7 +167,7 @@ export default function CalculationBuilder({
         <Label>Decimal Precision</Label>
         <Select
           value={precision}
-          onValueChange={(value) => setPrecision(value)}
+          onValueChange={(value: string) => setPrecision(value)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select precision" />

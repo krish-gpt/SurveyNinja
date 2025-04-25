@@ -624,6 +624,7 @@ export default function FormBuilder() {
           <ElementProperties
             selectedElement={selectedElement}
             onUpdateElement={handleUpdateElementFromProperties}
+            formElements={formElements}
           />
         )}
       </div>

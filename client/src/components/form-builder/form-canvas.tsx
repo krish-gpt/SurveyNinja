@@ -5,7 +5,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Trash2, Copy, MoreVertical } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, Copy, MoreVertical, EyeOff, Calculator } from "lucide-react";
 import { FormElements } from "./form-elements";
 
 interface FormCanvasProps {
