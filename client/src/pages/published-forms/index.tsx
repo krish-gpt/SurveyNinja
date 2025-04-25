@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { BarChart, ChevronRight, Loader2, Edit, Share2, FileEdit, FilePlus, Ellipsis } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import ShareFormModal from "@/components/share-form-modal";
+import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { Form as FormType, FormElement } from "@shared/schema";
 
@@ -25,7 +26,7 @@ export default function PublishedFormsPage() {
     responseCount: number;
     createdAt: string;
     updatedAt: string;
-    published?: boolean;
+    status?: string;
   }
   
   // Fetch forms
@@ -34,10 +35,8 @@ export default function PublishedFormsPage() {
     enabled: !!user,
   });
 
-  // Filter to only show published forms 
-  // Note: In a real implementation, we would add a 'published' field to the form schema
-  // For now we're assuming all forms with responses are published
-  const publishedForms = allForms.filter(form => form.responseCount > 0);
+  // Filter to only show published forms based on status
+  const publishedForms = allForms.filter(form => form.status === "published");
   
   const handleEditForm = (id: number) => {
     setLocation(`/forms/${id}/edit`);
@@ -86,7 +85,7 @@ export default function PublishedFormsPage() {
                   <BarChart className="h-12 w-12 text-gray-300 mb-4" />
                   <h3 className="text-lg font-medium text-gray-900">No published forms yet</h3>
                   <p className="text-gray-500 text-center mt-2">
-                    Forms appear here once they've received responses
+                    Forms appear here once they've been published
                   </p>
                   <div className="mt-6">
                     <Link href="/forms">
@@ -102,9 +101,14 @@ export default function PublishedFormsPage() {
                 <Card key={form.id} className="bg-white divide-y divide-gray-200">
                   <CardHeader className="px-4 py-5 sm:px-6 flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg font-medium text-gray-900 truncate">
-                        {form.title}
-                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg font-medium text-gray-900 truncate">
+                          {form.title}
+                        </CardTitle>
+                        <Badge variant="success" className="text-xs">
+                          Published
+                        </Badge>
+                      </div>
                       <CardDescription className="mt-1">
                         {form.responseCount} responses
                       </CardDescription>
