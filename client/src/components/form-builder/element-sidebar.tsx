@@ -7,7 +7,8 @@ import {
   ChevronsDown, 
   Star, 
   Calendar, 
-  FileUp 
+  FileUp,
+  Calculator 
 } from "lucide-react";
 
 interface ElementSidebarProps {
@@ -24,6 +25,7 @@ const elementIcons = {
   "rating": <Star />,
   "date": <Calendar />,
   "file-upload": <FileUp />,
+  "calculation": <Calculator />,
 };
 
 // Map element types to display names
@@ -36,6 +38,7 @@ const elementNames = {
   "rating": "Rating",
   "date": "Date",
   "file-upload": "File Upload",
+  "calculation": "Calculation",
 };
 
 export default function ElementSidebar({ onDragStart }: ElementSidebarProps) {
