@@ -48,7 +48,7 @@ export default function Navbar() {
   const navItems = [
     { name: "Dashboard", href: "/" },
     { name: "Forms", href: "/forms" },
-    { name: "Responses", href: "/responses" },
+    { name: "Published Forms", href: "/published-forms" },
   ];
 
   const isLinkActive = (href: string) => {

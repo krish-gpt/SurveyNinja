@@ -15,6 +15,7 @@ import FormView from "@/pages/forms/form-view";
 import ResponseViewer from "@/pages/forms/response-viewer";
 import ResponsesPage from "@/pages/responses";
 import ResponseSubmitted from "@/pages/response-submitted";
+import PublishedFormsPage from "@/pages/published-forms";
 import Upgrade from "@/pages/subscription/upgrade";
 import SubscriptionSuccess from "@/pages/subscription/success";
 import { AuthProvider } from "@/hooks/use-auth";

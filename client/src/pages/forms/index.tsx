@@ -41,10 +41,13 @@ export default function FormsPage() {
   }
   
   // Fetch forms
-  const { data: forms = [], isLoading } = useQuery<FormSummary[]>({
+  const { data: allForms = [], isLoading } = useQuery<FormSummary[]>({
     queryKey: ["/api/forms"],
     enabled: !!user,
   });
+  
+  // Filter to only show unpublished forms (forms with no responses)
+  const forms = allForms.filter(form => form.responseCount === 0);
 
   const handleCreateForm = () => {
     setLocation("/forms/new");
