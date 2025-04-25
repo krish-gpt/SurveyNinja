@@ -64,7 +64,7 @@ export default function Navbar() {
             <div className="flex-shrink-0 flex items-center">
               <Link href="/">
                 <span className="text-primary text-xl font-bold cursor-pointer">
-                  FormPulse
+                  FormCreator
                 </span>
               </Link>
             </div>
@@ -175,7 +175,7 @@ export default function Navbar() {
                 <div className="py-4">
                   <div className="mb-8">
                     <span className="text-primary text-xl font-bold">
-                      FormPulse
+                      FormCreator
                     </span>
                   </div>
 
@@ -225,7 +225,7 @@ export default function Navbar() {
                       >
                         Profile
                       </Link>
-                      
+
                       <Link
                         href="/subscription/upgrade"
                         className="px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 block mt-2"
@@ -233,7 +233,7 @@ export default function Navbar() {
                       >
                         Manage Subscription
                       </Link>
-                      
+
                       <Link
                         href="/contact"
                         className="px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-100 block mt-2"
