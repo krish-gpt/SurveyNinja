@@ -72,16 +72,22 @@ export default function FormsPage() {
 
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-semibold text-gray-900">Forms</h1>
-            
-            <Button 
-              onClick={handleCreateForm}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90"
-            >
-              <PlusCircle className="h-5 w-5 mr-2" />
-              New Form
-            </Button>
+          <div className="md:flex md:items-center md:justify-between mb-6">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-semibold text-gray-900">Forms</h1>
+              <p className="mt-1 text-sm text-gray-500">
+                Create and edit your forms before publishing
+              </p>
+            </div>
+            <div className="mt-4 md:mt-0">
+              <Button 
+                onClick={handleCreateForm}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90"
+              >
+                <PlusCircle className="h-5 w-5 mr-2" />
+                New Form
+              </Button>
+            </div>
           </div>
 
           {/* Forms list */}
