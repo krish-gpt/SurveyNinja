@@ -70,7 +70,7 @@ export default function PublishedFormsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="md:flex md:items-center md:justify-between mb-6">
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-semibold text-gray-900">Active Forms</h1>
+              <h1 className="text-2xl font-semibold text-gray-900">Published Forms</h1>
               <p className="mt-1 text-sm text-gray-500">
                 View and manage your published and closed forms
               </p>
@@ -83,7 +83,7 @@ export default function PublishedFormsPage() {
               <Card>
                 <CardContent className="flex flex-col items-center justify-center p-12">
                   <BarChart className="h-12 w-12 text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900">No active forms yet</h3>
+                  <h3 className="text-lg font-medium text-gray-900">No published forms yet</h3>
                   <p className="text-gray-500 text-center mt-2">
                     Published and closed forms appear here
                   </p>
