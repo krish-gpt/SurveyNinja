@@ -13,7 +13,6 @@ import FormsPage from "@/pages/forms";
 import FormBuilder from "@/pages/forms/form-builder";
 import FormView from "@/pages/forms/form-view";
 import ResponseViewer from "@/pages/forms/response-viewer";
-import ResponsesPage from "@/pages/responses";
 import ResponseSubmitted from "@/pages/response-submitted";
 import PublishedFormsPage from "@/pages/published-forms";
 import Upgrade from "@/pages/subscription/upgrade";
@@ -34,7 +33,6 @@ function Router() {
       <ProtectedRoute path="/forms/:id/edit" component={FormBuilder} />
       <ProtectedRoute path="/forms/:id/responses" component={ResponseViewer} />
       <ProtectedRoute path="/published-forms" component={PublishedFormsPage} />
-      <ProtectedRoute path="/responses" component={ResponsesPage} />
       <Route path="/form/:id" component={FormView} />
       <Route path="/response-submitted" component={ResponseSubmitted} />
       <ProtectedRoute path="/subscription/upgrade" component={Upgrade} />
