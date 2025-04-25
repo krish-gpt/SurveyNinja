@@ -58,12 +58,18 @@ export default function Dashboard() {
   }
 
   // Fetch forms with default empty array to prevent "possibly undefined" errors
-  const { data: forms = [], isLoading: isLoadingForms } = useQuery<
+  const { data: allForms = [], isLoading: isLoadingForms } = useQuery<
     FormSummary[]
   >({
     queryKey: ["/api/forms"],
     enabled: !!user,
   });
+  
+  // Filter to only show published forms (with responses) and limit to 2
+  const publishedForms = allForms
+    .filter(form => form.responseCount > 0)
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 2);
 
   // Fetch stats with default empty object to prevent "possibly undefined" errors
   const {
@@ -88,7 +94,7 @@ export default function Dashboard() {
   };
 
   const handleViewResponses = (id: number) => {
-    setLocation(`/forms/${id}/responses`);
+    setLocation(`/published-forms/${id}/responses`);
   };
 
   const handleShareForm = (id: number) => {
@@ -209,14 +215,14 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Recent Forms */}
+          {/* Recent Published Forms */}
           <h2 className="mt-8 text-lg font-medium text-gray-900">
-            Recent Forms
+            Recent Published Forms
           </h2>
 
           {isLoadingForms ? (
-            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {Array(3)
+            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
+              {Array(2)
                 .fill(0)
                 .map((_, i) => (
                   <Card key={i} className="bg-white">
@@ -234,9 +240,30 @@ export default function Dashboard() {
                   </Card>
                 ))}
             </div>
-          ) : forms.length > 0 ? (
-            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {forms.map((form: FormSummary) => (
+          ) : allForms.length === 0 ? (
+            <div className="mt-4">
+              <Alert>
+                <AlertTitle className="text-lg font-semibold">
+                  No forms yet
+                </AlertTitle>
+                <AlertDescription className="mt-2">
+                  <p className="mb-4">
+                    You haven't created any forms yet. Create your first form to
+                    start collecting responses.
+                  </p>
+                  <Button
+                    onClick={handleCreateForm}
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90"
+                  >
+                    <PlusCircle className="h-5 w-5 mr-2" />
+                    Create Your First Form
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            </div>
+          ) : publishedForms.length > 0 ? (
+            <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
+              {publishedForms.map((form: FormSummary) => (
                 <Card
                   key={form.id}
                   className="bg-white divide-y divide-gray-200"
@@ -327,20 +354,18 @@ export default function Dashboard() {
             <div className="mt-4">
               <Alert>
                 <AlertTitle className="text-lg font-semibold">
-                  No forms yet
+                  No published forms
                 </AlertTitle>
                 <AlertDescription className="mt-2">
                   <p className="mb-4">
-                    You haven't created any forms yet. Create your first form to
-                    start collecting responses.
+                    You don't have any published forms with responses yet. Share your forms to collect responses.
                   </p>
-                  <Button
-                    onClick={handleCreateForm}
-                    className="inline-flex items-center px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90"
-                  >
-                    <PlusCircle className="h-5 w-5 mr-2" />
-                    Create Your First Form
-                  </Button>
+                  <Link href="/forms">
+                    <Button className="inline-flex items-center px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90">
+                      <FileText className="h-5 w-5 mr-2" />
+                      Go to Forms
+                    </Button>
+                  </Link>
                 </AlertDescription>
               </Alert>
             </div>
