@@ -64,8 +64,8 @@ export default function FormsPage() {
     enabled: !!user,
   });
   
-  // Show only draft forms on this page - published forms go to the dashboard
-  const forms = allForms.filter(form => form.status !== "published");
+  // Show only draft forms on this page - published and closed forms go to the active forms page
+  const forms = allForms.filter(form => form.status === "draft");
 
   // Delete form mutation
   const deleteFormMutation = useMutation({
