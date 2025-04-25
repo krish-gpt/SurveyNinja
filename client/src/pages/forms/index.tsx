@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import Navbar from "@/components/navbar";
 import { Button } from "@/components/ui/button";
@@ -19,16 +19,32 @@ import {
   Loader2,
   PlusCircle,
   Ellipsis,
+  Trash2,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ShareFormModal from "@/components/share-form-modal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function FormsPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [formToDelete, setFormToDelete] = useState<number | null>(null);
 
   // Define the form type
   interface FormSummary {
@@ -49,6 +65,31 @@ export default function FormsPage() {
   // Filter to only show unpublished forms (forms with no responses)
   const forms = allForms.filter(form => form.responseCount === 0);
 
+  // Delete form mutation
+  const deleteFormMutation = useMutation({
+    mutationFn: async (formId: number) => {
+      await apiRequest("DELETE", `/api/forms/${formId}`);
+    },
+    onSuccess: () => {
+      // Invalidate the forms query to refetch the data
+      queryClient.invalidateQueries({ queryKey: ["/api/forms"] });
+      // Also invalidate stats query which shows form counts
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Form deleted",
+        description: "The form has been successfully deleted",
+      });
+      setFormToDelete(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error deleting form",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreateForm = () => {
     setLocation("/forms/new");
   };
@@ -64,6 +105,18 @@ export default function FormsPage() {
   const handleShareForm = (id: number) => {
     setSelectedFormId(id);
     setIsShareModalOpen(true);
+  };
+  
+  const handleDeleteForm = (id: number) => {
+    setFormToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const confirmDelete = () => {
+    if (formToDelete) {
+      deleteFormMutation.mutate(formToDelete);
+    }
+    setIsDeleteDialogOpen(false);
   };
 
   return (
@@ -138,6 +191,13 @@ export default function FormsPage() {
                             <Share2 className="h-4 w-4 mr-2" />
                             Share
                           </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteForm(form.id)}
+                            className="text-red-500 focus:text-red-500"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -204,6 +264,34 @@ export default function FormsPage() {
           onClose={() => setIsShareModalOpen(false)}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this form?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your form and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {deleteFormMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
