@@ -31,6 +31,7 @@ export const forms = pgTable("forms", {
   description: text("description"),
   logo: text("logo"),
   elements: jsonb("elements").default([]).notNull(),
+  status: text("status").default("draft").notNull(), // 'draft' or 'published'
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -41,6 +42,7 @@ export const insertFormSchema = createInsertSchema(forms).pick({
   description: true,
   logo: true,
   elements: true,
+  status: true,
 });
 
 // Form response model

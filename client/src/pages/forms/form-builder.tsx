@@ -12,7 +12,7 @@ import FormCanvas from "@/components/form-builder/form-canvas";
 import ElementProperties from "@/components/form-builder/element-properties";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Eye, Settings, Trash2 } from "lucide-react";
+import { Loader2, Save, Eye, Send, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +43,9 @@ export default function FormBuilder() {
     queryKey: [`/api/forms/${id}`],
     enabled: isEditMode && !!user,
   });
+  
+  // Check if form is published
+  const isPublished = form?.status === "published";
 
   // Fetch responses count to determine if the form is a draft (can be deleted)
   // Using the same endpoint we use for responses, but we only need the total count
@@ -59,6 +62,30 @@ export default function FormBuilder() {
   
   // Form is considered a draft if it has no responses
   const isDraftForm = responsesData?.total === 0;
+
+  // Publish form mutation
+  const publishFormMutation = useMutation({
+    mutationFn: async () => {
+      if (!id) return;
+      const res = await apiRequest("PATCH", `/api/forms/${id}`, { status: "published" });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/forms/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/forms"] });
+      toast({
+        title: "Form published",
+        description: "Your form has been published and is now available for responses",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error publishing form",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Delete form mutation
   const deleteFormMutation = useMutation({
@@ -233,6 +260,22 @@ export default function FormBuilder() {
     deleteFormMutation.mutate();
     setIsDeleteDialogOpen(false);
   };
+  
+  // Handle publish form
+  const handlePublishForm = () => {
+    if (formElements.length === 0) {
+      toast({
+        title: "Cannot publish empty form",
+        description: "Please add at least one form element before publishing",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // First save the form and then publish it
+    handleSaveForm();
+    publishFormMutation.mutate();
+  };
 
   if (isLoadingForm) {
     return (
@@ -271,19 +314,33 @@ export default function FormBuilder() {
                   variant="outline" 
                   size="sm" 
                   onClick={handlePreviewForm}
-                  disabled={saveFormMutation.isPending || deleteFormMutation.isPending}
+                  disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending}
                 >
                   <Eye className="mr-2 h-4 w-4" />
                   Preview
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  disabled={saveFormMutation.isPending || deleteFormMutation.isPending}
-                >
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </Button>
+                {/* Show Publish button only if form is not already published */}
+                {(!isPublished) && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handlePublishForm}
+                    disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending}
+                    className="text-green-600 border-green-600 hover:bg-green-50"
+                  >
+                    {publishFormMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Publishing...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="mr-2 h-4 w-4" />
+                        Publish
+                      </>
+                    )}
+                  </Button>
+                )}
                 {/* Show Delete button only for draft forms */}
                 {isEditMode && isDraftForm && (
                   <Button 
