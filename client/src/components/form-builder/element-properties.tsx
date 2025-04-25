@@ -128,12 +128,14 @@ export default function ElementProperties({
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="p-3 border-b">
           <TabsList className="w-full grid grid-cols-3">
-            <TabsTrigger value="basic">Basic</TabsTrigger>
+            <TabsTrigger value="basic">
+              Field Settings
+            </TabsTrigger>
             <TabsTrigger 
               value="conditional"
               disabled={selectedElement.type === "calculation"}
             >
-              Logic
+              Field Logic
             </TabsTrigger>
             <TabsTrigger 
               value="calculation"

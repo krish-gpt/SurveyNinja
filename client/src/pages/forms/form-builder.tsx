@@ -579,9 +579,9 @@ export default function FormBuilder() {
               <div className="px-4 pb-2 border-b border-gray-200">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-[400px] grid-cols-3">
-                    <TabsTrigger value="build">Build</TabsTrigger>
-                    <TabsTrigger value="design">Design</TabsTrigger>
-                    <TabsTrigger value="logic">Logic</TabsTrigger>
+                    <TabsTrigger value="build">Form Builder</TabsTrigger>
+                    <TabsTrigger value="design">Theme & Design</TabsTrigger>
+                    <TabsTrigger value="logic">Form Rules</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="build" className="mt-4 flex-1 flex">
@@ -609,8 +609,17 @@ export default function FormBuilder() {
                   
                   <TabsContent value="logic" className="mt-4 p-6">
                     <div className="bg-white rounded-lg shadow p-6">
-                      <h2 className="text-lg font-medium mb-4">Form Logic</h2>
-                      <p className="text-gray-500">Add conditional logic to your form (Coming soon)</p>
+                      <h2 className="text-lg font-medium mb-4">Form-Wide Rules</h2>
+                      <p className="text-gray-500">
+                        This tab allows you to set up rules that apply to your entire form. 
+                        For field-specific conditional logic, select a field and use the "Logic" tab in the right panel.
+                      </p>
+                      <div className="mt-6 p-4 bg-primary-50 rounded-md border border-primary-200">
+                        <p className="text-primary-600 font-medium">Coming Soon</p>
+                        <p className="text-sm text-primary-700 mt-1">
+                          Form-wide validation rules, form calculations, and more advanced features will be available here soon.
+                        </p>
+                      </div>
                     </div>
                   </TabsContent>
                 </Tabs>
