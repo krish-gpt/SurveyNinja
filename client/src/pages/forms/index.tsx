@@ -64,9 +64,8 @@ export default function FormsPage() {
     enabled: !!user,
   });
   
-  // Show all forms on this page, regardless of status
-  // We used to filter to show only draft forms, but now we show all and use badges to indicate status
-  const forms = allForms;
+  // Show only draft forms on this page - published forms go to the dashboard
+  const forms = allForms.filter(form => form.status !== "published");
 
   // Delete form mutation
   const deleteFormMutation = useMutation({

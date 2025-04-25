@@ -271,9 +271,14 @@ export default function Dashboard() {
                 >
                   <CardHeader className="px-4 py-5 sm:px-6 flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg font-medium text-gray-900 truncate">
-                        {form.title}
-                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg font-medium text-gray-900 truncate">
+                          {form.title}
+                        </CardTitle>
+                        <Badge variant="success" className="text-xs">
+                          Published
+                        </Badge>
+                      </div>
                       <CardDescription className="mt-1">
                         {form.responseCount} responses
                       </CardDescription>
