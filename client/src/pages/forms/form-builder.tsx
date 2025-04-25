@@ -347,6 +347,26 @@ export default function FormBuilder() {
                 />
               </div>
               <div className="flex space-x-3">
+                {/* 1. Save button */}
+                <Button 
+                  size="sm" 
+                  onClick={handleSaveForm}
+                  disabled={saveFormMutation.isPending || deleteFormMutation.isPending}
+                >
+                  {saveFormMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Save
+                    </>
+                  )}
+                </Button>
+                
+                {/* 2. Preview button */}
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -356,7 +376,8 @@ export default function FormBuilder() {
                   <Eye className="mr-2 h-4 w-4" />
                   Preview
                 </Button>
-                {/* Show Publish button only if form is not already published */}
+                
+                {/* 3. Publish button only if form is not already published */}
                 {(form?.status !== "published") && (
                   <Button 
                     variant="outline" 
@@ -378,6 +399,7 @@ export default function FormBuilder() {
                     )}
                   </Button>
                 )}
+                
                 {/* Show Unpublish button only for published forms */}
                 {form?.status === "published" && (
                   <Button 
@@ -400,7 +422,8 @@ export default function FormBuilder() {
                     )}
                   </Button>
                 )}
-                {/* Show Delete button only for draft forms */}
+                
+                {/* 4. Delete button only for draft forms */}
                 {isEditMode && isDraftForm && (
                   <Button 
                     variant="outline"
@@ -422,23 +445,6 @@ export default function FormBuilder() {
                     )}
                   </Button>
                 )}
-                <Button 
-                  size="sm" 
-                  onClick={handleSaveForm}
-                  disabled={saveFormMutation.isPending || deleteFormMutation.isPending}
-                >
-                  {saveFormMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      Save
-                    </>
-                  )}
-                </Button>
               </div>
             </div>
             
