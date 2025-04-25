@@ -59,8 +59,8 @@ export default function FormBuilder() {
     enabled: isEditMode && !!user && !!form,
   });
   
-  // Form is considered a draft if it has no responses and is not published
-  const isDraftForm = responsesData?.total === 0 && form?.status !== "published";
+  // Form is considered a draft if its status is not published
+  const isDraftForm = form?.status !== "published";
 
   // Publish form mutation
   const publishFormMutation = useMutation({

@@ -64,8 +64,9 @@ export default function FormsPage() {
     enabled: !!user,
   });
   
-  // Filter to only show unpublished forms (forms with no responses)
-  const forms = allForms.filter(form => form.responseCount === 0);
+  // Show all forms on this page, regardless of status
+  // We used to filter to show only draft forms, but now we show all and use badges to indicate status
+  const forms = allForms;
 
   // Delete form mutation
   const deleteFormMutation = useMutation({
@@ -202,13 +203,15 @@ export default function FormsPage() {
                             <Share2 className="h-4 w-4 mr-2" />
                             Share{form.status !== 'published' ? ' (Publish first)' : ''}
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteForm(form.id)}
-                            className="text-red-500 focus:text-red-500"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
+                          {form.status !== 'published' && (
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteForm(form.id)}
+                              className="text-red-500 focus:text-red-500"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -224,14 +227,20 @@ export default function FormsPage() {
                         Edit
                       </Button>
                       
-                      <Button
-                        variant="link"
-                        className="font-medium text-red-500 hover:text-red-600 p-0"
-                        onClick={() => handleDeleteForm(form.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
+                      {form.status !== 'published' ? (
+                        <Button
+                          variant="link"
+                          className="font-medium text-red-500 hover:text-red-600 p-0"
+                          onClick={() => handleDeleteForm(form.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      ) : (
+                        <div className="opacity-0">
+                          {/* This div takes up space to maintain the layout but is invisible */}
+                        </div>
+                      )}
                       
                       <Button
                         variant="link"

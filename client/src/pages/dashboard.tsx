@@ -48,6 +48,7 @@ export default function Dashboard() {
     responseCount: number;
     createdAt: string;
     updatedAt: string;
+    status?: string;
   }
 
   interface UserStats {
@@ -65,9 +66,9 @@ export default function Dashboard() {
     enabled: !!user,
   });
   
-  // Filter to only show published forms (with responses) and limit to 2
+  // Filter to only show published forms based on status and limit to 2
   const publishedForms = allForms
-    .filter(form => form.responseCount > 0)
+    .filter(form => form.status === "published")
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 2);
 
@@ -358,7 +359,7 @@ export default function Dashboard() {
                 </AlertTitle>
                 <AlertDescription className="mt-2">
                   <p className="mb-4">
-                    You don't have any published forms with responses yet. Share your forms to collect responses.
+                    You don't have any published forms yet. Click the Publish button on your draft forms to make them available for responses.
                   </p>
                   <Link href="/forms">
                     <Button className="inline-flex items-center px-4 py-2 text-sm font-medium bg-primary hover:bg-primary/90">
