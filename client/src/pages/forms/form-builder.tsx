@@ -396,7 +396,7 @@ export default function FormBuilder() {
                 )}
               </div>
               <div className="flex space-x-3">
-                {/* For closed forms, only show view responses button */}
+                {/* Different button sets based on form status */}
                 {isClosedForm ? (
                   <Button 
                     variant="outline" 
@@ -406,6 +406,57 @@ export default function FormBuilder() {
                     <Eye className="mr-2 h-4 w-4" />
                     View Form
                   </Button>
+                ) : form?.status === "published" ? (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handlePreviewForm}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Preview
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleUnpublishForm}
+                      disabled={unpublishFormMutation.isPending || closeFormMutation.isPending}
+                      className="text-amber-600 border-amber-600 hover:bg-amber-50"
+                    >
+                      {unpublishFormMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Unpublishing...
+                        </>
+                      ) : (
+                        <>
+                          <CirclePause className="mr-2 h-4 w-4" />
+                          Unpublish
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleCloseForm}
+                      disabled={unpublishFormMutation.isPending || closeFormMutation.isPending}
+                      className="text-red-500 border-red-500 hover:bg-red-50"
+                    >
+                      {closeFormMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Closing...
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="mr-2 h-4 w-4" />
+                          Close Form
+                        </>
+                      )}
+                    </Button>
+                  </>
                 ) : (
                   <>
                     {/* 1. Save button */}
@@ -432,87 +483,40 @@ export default function FormBuilder() {
                       variant="outline" 
                       size="sm" 
                       onClick={handlePreviewForm}
-                      disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending || unpublishFormMutation.isPending}
+                      disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending}
                     >
                       <Eye className="mr-2 h-4 w-4" />
                       Preview
                     </Button>
                     
-                    {/* 3. Publish button only if form is not already published */}
-                    {(form?.status !== "published") && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={handlePublishForm}
-                        disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending || unpublishFormMutation.isPending}
-                        className="text-green-600 border-green-600 hover:bg-green-50"
-                      >
-                        {publishFormMutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Publishing...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="mr-2 h-4 w-4" />
-                            Publish
-                          </>
-                        )}
-                      </Button>
-                    )}
+                    {/* 3. Publish button */}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handlePublishForm}
+                      disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending}
+                      className="text-green-600 border-green-600 hover:bg-green-50"
+                    >
+                      {publishFormMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Publishing...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="mr-2 h-4 w-4" />
+                          Publish
+                        </>
+                      )}
+                    </Button>
                     
-                    {/* Show Unpublish and Close buttons only for published forms */}
-                    {form?.status === "published" && (
-                      <>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleUnpublishForm}
-                          disabled={saveFormMutation.isPending || unpublishFormMutation.isPending || closeFormMutation.isPending}
-                          className="text-amber-600 border-amber-600 hover:bg-amber-50"
-                        >
-                          {unpublishFormMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Unpublishing...
-                            </>
-                          ) : (
-                            <>
-                              <CirclePause className="mr-2 h-4 w-4" />
-                              Unpublish
-                            </>
-                          )}
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={handleCloseForm}
-                          disabled={saveFormMutation.isPending || unpublishFormMutation.isPending || closeFormMutation.isPending}
-                          className="text-red-500 border-red-500 hover:bg-red-50"
-                        >
-                          {closeFormMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Closing...
-                            </>
-                          ) : (
-                            <>
-                              <Lock className="mr-2 h-4 w-4" />
-                              Close Form
-                            </>
-                          )}
-                        </Button>
-                      </>
-                    )}
-                    
-                    {/* 4. Delete button only for draft forms */}
-                    {isEditMode && isDraftForm && (
+                    {/* 4. Delete button */}
+                    {isEditMode && (
                       <Button 
                         variant="outline"
                         size="sm" 
                         onClick={handleDeleteForm}
-                        disabled={saveFormMutation.isPending || deleteFormMutation.isPending || unpublishFormMutation.isPending}
+                        disabled={saveFormMutation.isPending || deleteFormMutation.isPending || publishFormMutation.isPending}
                         className="text-red-500 border-red-500 hover:bg-red-50"
                       >
                         {deleteFormMutation.isPending ? (
