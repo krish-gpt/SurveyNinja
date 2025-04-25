@@ -54,6 +54,7 @@ export default function FormsPage() {
     responseCount: number;
     createdAt: string;
     updatedAt: string;
+    status?: string;
   }
   
   // Fetch forms

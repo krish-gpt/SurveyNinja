@@ -319,6 +319,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.patch("/api/forms/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+    
+    try {
+      const formId = parseInt(req.params.id);
+      
+      if (isNaN(formId)) {
+        return res.status(400).json({ message: "Invalid form ID" });
+      }
+      
+      // Check if user owns the form
+      const form = await storage.getForm(formId);
+      
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      if (form.userId !== req.user.id) {
+        return res.status(403).json({ message: "You do not have access to this form" });
+      }
+      
+      // Only allow status changes for PATCH requests
+      if (!req.body.status) {
+        return res.status(400).json({ message: "Status is required for PATCH requests" });
+      }
+      
+      if (req.body.status !== "draft" && req.body.status !== "published") {
+        return res.status(400).json({ message: "Status must be either 'draft' or 'published'" });
+      }
+      
+      // Update form status
+      const updatedForm = await storage.updateForm(formId, { status: req.body.status });
+      res.json(updatedForm);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.delete("/api/forms/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "You must be logged in" });
@@ -404,6 +444,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!form) {
         return res.status(404).json({ message: "Form not found" });
+      }
+      
+      // Check if form is published
+      if (form.status !== "published") {
+        return res.status(403).json({ 
+          message: "This form is not accepting responses because it is not published"
+        });
       }
       
       // Set action for the form owner's response limit check
