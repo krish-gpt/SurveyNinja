@@ -44,7 +44,7 @@ export default function PublishedFormsPage() {
   };
 
   const handleViewResponses = (id: number) => {
-    setLocation(`/forms/${id}/responses`);
+    setLocation(`/published-forms/${id}/responses`);
   };
 
   const handleShareForm = (id: number) => {

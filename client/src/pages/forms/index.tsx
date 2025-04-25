@@ -134,10 +134,6 @@ export default function FormsPage() {
                             <FileEdit className="h-4 w-4 mr-2" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleViewResponses(form.id)}>
-                            <FilePlus className="h-4 w-4 mr-2" />
-                            View Responses
-                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleShareForm(form.id)}>
                             <Share2 className="h-4 w-4 mr-2" />
                             Share
@@ -154,13 +150,6 @@ export default function FormsPage() {
                         onClick={() => handleEditForm(form.id)}
                       >
                         Edit
-                      </Button>
-                      <Button
-                        variant="link"
-                        className="font-medium text-primary hover:text-primary/80 p-0"
-                        onClick={() => handleViewResponses(form.id)}
-                      >
-                        View Responses
                       </Button>
                       <Button
                         variant="link"

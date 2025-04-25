@@ -33,6 +33,7 @@ function Router() {
       <ProtectedRoute path="/forms/:id/edit" component={FormBuilder} />
       <ProtectedRoute path="/forms/:id/responses" component={ResponseViewer} />
       <ProtectedRoute path="/published-forms" component={PublishedFormsPage} />
+      <ProtectedRoute path="/published-forms/:id/responses" component={ResponseViewer} />
       <Route path="/form/:id" component={FormView} />
       <Route path="/response-submitted" component={ResponseSubmitted} />
       <ProtectedRoute path="/subscription/upgrade" component={Upgrade} />
