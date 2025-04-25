@@ -347,8 +347,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Status is required for PATCH requests" });
       }
       
-      if (req.body.status !== "draft" && req.body.status !== "published") {
-        return res.status(400).json({ message: "Status must be either 'draft' or 'published'" });
+      // Validate status
+      const validStatuses = ["draft", "published", "closed"];
+      if (!validStatuses.includes(req.body.status)) {
+        return res.status(400).json({ message: "Status must be either 'draft', 'published', or 'closed'" });
+      }
+      
+      // Prevent reopening a closed form
+      if (form.status === "closed" && req.body.status !== "closed") {
+        return res.status(400).json({ message: "Cannot reopen a closed form" });
       }
       
       // Update form status
@@ -382,10 +389,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You do not have access to this form" });
       }
       
-      // Check if form is published - we don't allow deleting published forms
+      // Check form status - we don't allow deleting published or closed forms
       if (form.status === "published") {
         return res.status(403).json({ 
           message: "Published forms cannot be deleted to maintain data integrity. Unpublish the form first."
+        });
+      }
+      
+      if (form.status === "closed") {
+        return res.status(403).json({ 
+          message: "Closed forms cannot be deleted to maintain data integrity."
         });
       }
       
@@ -453,7 +466,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Form not found" });
       }
       
-      // Check if form is published
+      // Check form status
+      if (form.status === "closed") {
+        return res.status(403).json({ 
+          message: "This form has been closed and is no longer accepting new responses"
+        });
+      }
+      
       if (form.status !== "published") {
         return res.status(403).json({ 
           message: "This form is not accepting responses because it is not published"
