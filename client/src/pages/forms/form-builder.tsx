@@ -12,7 +12,7 @@ import FormCanvas from "@/components/form-builder/form-canvas";
 import ElementProperties from "@/components/form-builder/element-properties";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Eye, Send, Trash2, CirclePause } from "lucide-react";
+import { Loader2, Save, Eye, Send, Trash2, CirclePause, Lock } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +36,7 @@ export default function FormBuilder() {
   const [selectedElement, setSelectedElement] = useState<FormElement | null>(null);
   const [formLogo, setFormLogo] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isCloseFormDialogOpen, setIsCloseFormDialogOpen] = useState(false);
   const isEditMode = !!id;
 
   // Fetch form if in edit mode
@@ -60,7 +61,10 @@ export default function FormBuilder() {
   });
   
   // Form is considered a draft if its status is not published
-  const isDraftForm = form?.status !== "published";
+  const isDraftForm = form?.status !== "published" && form?.status !== "closed";
+  
+  // Form is considered closed if its status is closed
+  const isClosedForm = form?.status === "closed";
 
   // Publish form mutation
   const publishFormMutation = useMutation({
@@ -104,6 +108,30 @@ export default function FormBuilder() {
     onError: (error: Error) => {
       toast({
         title: "Error unpublishing form",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Close form mutation
+  const closeFormMutation = useMutation({
+    mutationFn: async () => {
+      if (!id) return;
+      const res = await apiRequest("PATCH", `/api/forms/${id}`, { status: "closed" });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/forms/${id}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/forms"] });
+      toast({
+        title: "Form closed",
+        description: "Your form has been closed and is no longer accepting responses",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error closing form",
         description: error.message,
         variant: "destructive",
       });
@@ -313,6 +341,17 @@ export default function FormBuilder() {
     // Unpublish the form
     unpublishFormMutation.mutate();
   };
+  
+  // Handle close form (opens confirm dialog)
+  const handleCloseForm = () => {
+    setIsCloseFormDialogOpen(true);
+  };
+  
+  // Confirm close form
+  const confirmCloseForm = () => {
+    closeFormMutation.mutate();
+    setIsCloseFormDialogOpen(false);
+  };
 
   if (isLoadingForm) {
     return (
@@ -338,13 +377,23 @@ export default function FormBuilder() {
           <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
             <div className="flex items-center justify-between px-4 py-4">
               <div className="flex-1 min-w-0">
-                <input 
-                  type="text" 
-                  value={formTitle} 
-                  onChange={(e) => setFormTitle(e.target.value)} 
-                  className="border-0 focus:ring-0 text-xl font-semibold text-gray-900 w-full focus:outline-none" 
-                  placeholder="Form Title"
-                />
+                {isClosedForm ? (
+                  <div className="flex items-center space-x-2">
+                    <h1 className="text-xl font-semibold text-gray-900">{formTitle}</h1>
+                    <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded flex items-center">
+                      <Lock className="w-3 h-3 mr-1" />
+                      Closed
+                    </span>
+                  </div>
+                ) : (
+                  <input 
+                    type="text" 
+                    value={formTitle} 
+                    onChange={(e) => setFormTitle(e.target.value)} 
+                    className="border-0 focus:ring-0 text-xl font-semibold text-gray-900 w-full focus:outline-none" 
+                    placeholder="Form Title"
+                  />
+                )}
               </div>
               <div className="flex space-x-3">
                 {/* 1. Save button */}
@@ -400,27 +449,49 @@ export default function FormBuilder() {
                   </Button>
                 )}
                 
-                {/* Show Unpublish button only for published forms */}
+                {/* Show Unpublish and Close buttons only for published forms */}
                 {form?.status === "published" && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleUnpublishForm}
-                    disabled={saveFormMutation.isPending || unpublishFormMutation.isPending}
-                    className="text-amber-600 border-amber-600 hover:bg-amber-50"
-                  >
-                    {unpublishFormMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Unpublishing...
-                      </>
-                    ) : (
-                      <>
-                        <CirclePause className="mr-2 h-4 w-4" />
-                        Unpublish
-                      </>
-                    )}
-                  </Button>
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleUnpublishForm}
+                      disabled={saveFormMutation.isPending || unpublishFormMutation.isPending || closeFormMutation.isPending}
+                      className="text-amber-600 border-amber-600 hover:bg-amber-50"
+                    >
+                      {unpublishFormMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Unpublishing...
+                        </>
+                      ) : (
+                        <>
+                          <CirclePause className="mr-2 h-4 w-4" />
+                          Unpublish
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleCloseForm}
+                      disabled={saveFormMutation.isPending || unpublishFormMutation.isPending || closeFormMutation.isPending}
+                      className="text-red-500 border-red-500 hover:bg-red-50"
+                    >
+                      {closeFormMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Closing...
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="mr-2 h-4 w-4" />
+                          Close Form
+                        </>
+                      )}
+                    </Button>
+                  </>
                 )}
                 
                 {/* 4. Delete button only for draft forms */}
@@ -520,6 +591,44 @@ export default function FormBuilder() {
                 </>
               ) : (
                 "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Close Form Confirmation Dialog */}
+      <AlertDialog open={isCloseFormDialogOpen} onOpenChange={setIsCloseFormDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to close this form?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <p className="mb-2">
+                Closing a form will:
+              </p>
+              <ul className="list-disc pl-6 space-y-1">
+                <li>Permanently prevent new responses</li>
+                <li>Lock the form from further editing</li>
+                <li>Keep all existing responses available for viewing</li>
+              </ul>
+              <p className="mt-2 font-medium text-red-500">
+                This action cannot be undone. Once closed, a form cannot be reopened.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmCloseForm}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {closeFormMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Closing...
+                </>
+              ) : (
+                "Close Form"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

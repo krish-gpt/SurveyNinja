@@ -31,7 +31,7 @@ export const forms = pgTable("forms", {
   description: text("description"),
   logo: text("logo"),
   elements: jsonb("elements").default([]).notNull(),
-  status: text("status").default("draft").notNull(), // 'draft' or 'published'
+  status: text("status").default("draft").notNull(), // 'draft', 'published', or 'closed'
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
