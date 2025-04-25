@@ -12,7 +12,7 @@ import FormCanvas from "@/components/form-builder/form-canvas";
 import ElementProperties from "@/components/form-builder/element-properties";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Eye, Send, Trash2 } from "lucide-react";
+import { Loader2, Save, Eye, Send, Trash2, CirclePause } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -394,7 +394,7 @@ export default function FormBuilder() {
                       </>
                     ) : (
                       <>
-                        <PauseCircle className="mr-2 h-4 w-4" />
+                        <CirclePause className="mr-2 h-4 w-4" />
                         Unpublish
                       </>
                     )}
