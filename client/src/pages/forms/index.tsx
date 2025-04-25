@@ -18,10 +18,8 @@ import {
   Share2,
   Loader2,
   PlusCircle,
-  Ellipsis,
   Trash2,
 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import ShareFormModal from "@/components/share-form-modal";
 import {
@@ -166,7 +164,7 @@ export default function FormsPage() {
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {forms.map((form: FormSummary) => (
                 <Card key={form.id} className="bg-white divide-y divide-gray-200">
-                  <CardHeader className="px-4 py-5 sm:px-6 flex justify-between items-start">
+                  <CardHeader className="px-4 py-5 sm:px-6">
                     <div>
                       <CardTitle className="text-lg font-medium text-gray-900 truncate">
                         {form.title}
@@ -175,42 +173,27 @@ export default function FormsPage() {
                         {form.responseCount} responses
                       </CardDescription>
                     </div>
-                    <div className="flex space-x-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Ellipsis className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEditForm(form.id)}>
-                            <FileEdit className="h-4 w-4 mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleShareForm(form.id)}>
-                            <Share2 className="h-4 w-4 mr-2" />
-                            Share
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteForm(form.id)}
-                            className="text-red-500 focus:text-red-500"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
                   </CardHeader>
                   <CardFooter className="px-4 py-4 sm:px-6 bg-gray-50">
                     <div className="flex justify-between text-sm w-full">
-                      <Button
-                        variant="link"
-                        className="font-medium text-primary hover:text-primary/80 p-0"
-                        onClick={() => handleEditForm(form.id)}
-                      >
-                        Edit
-                      </Button>
+                      <div className="flex space-x-4">
+                        <Button
+                          variant="link"
+                          className="font-medium text-primary hover:text-primary/80 p-0"
+                          onClick={() => handleEditForm(form.id)}
+                        >
+                          <FileEdit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="link"
+                          className="font-medium text-red-500 hover:text-red-600 p-0"
+                          onClick={() => handleDeleteForm(form.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </div>
                       <Button
                         variant="link"
                         className="font-medium text-gray-500 hover:text-gray-700 p-0"
