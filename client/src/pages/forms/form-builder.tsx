@@ -12,7 +12,17 @@ import FormCanvas from "@/components/form-builder/form-canvas";
 import ElementProperties from "@/components/form-builder/element-properties";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Eye, Settings } from "lucide-react";
+import { Loader2, Save, Eye, Settings, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function FormBuilder() {
   const { id } = useParams<{ id: string }>();
@@ -25,12 +35,54 @@ export default function FormBuilder() {
   const [formElements, setFormElements] = useState<FormElement[]>([]);
   const [selectedElement, setSelectedElement] = useState<FormElement | null>(null);
   const [formLogo, setFormLogo] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const isEditMode = !!id;
 
   // Fetch form if in edit mode
   const { data: form, isLoading: isLoadingForm } = useQuery<FormType>({
     queryKey: [`/api/forms/${id}`],
     enabled: isEditMode && !!user,
+  });
+
+  // Fetch responses count to determine if the form is a draft (can be deleted)
+  // Using the same endpoint we use for responses, but we only need the total count
+  interface ResponsesData {
+    responses: any[];
+    total: number;
+    limit: number;
+  }
+  
+  const { data: responsesData } = useQuery<ResponsesData>({
+    queryKey: [`/api/forms/${id}/responses`],
+    enabled: isEditMode && !!user && !!form,
+  });
+  
+  // Form is considered a draft if it has no responses
+  const isDraftForm = responsesData?.total === 0;
+
+  // Delete form mutation
+  const deleteFormMutation = useMutation({
+    mutationFn: async () => {
+      if (!id) return;
+      await apiRequest("DELETE", `/api/forms/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/forms"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Form deleted",
+        description: "Your form has been successfully deleted",
+      });
+      // Navigate back to forms page
+      setLocation("/forms");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error deleting form",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Save form mutation
@@ -170,6 +222,17 @@ export default function FormBuilder() {
   const handleSelectElement = (element: FormElement | null) => {
     setSelectedElement(element);
   };
+  
+  // Handle delete form (opens confirm dialog)
+  const handleDeleteForm = () => {
+    setIsDeleteDialogOpen(true);
+  };
+  
+  // Confirm delete form
+  const confirmDeleteForm = () => {
+    deleteFormMutation.mutate();
+    setIsDeleteDialogOpen(false);
+  };
 
   if (isLoadingForm) {
     return (
@@ -208,7 +271,7 @@ export default function FormBuilder() {
                   variant="outline" 
                   size="sm" 
                   onClick={handlePreviewForm}
-                  disabled={saveFormMutation.isPending}
+                  disabled={saveFormMutation.isPending || deleteFormMutation.isPending}
                 >
                   <Eye className="mr-2 h-4 w-4" />
                   Preview
@@ -216,15 +279,37 @@ export default function FormBuilder() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  disabled={saveFormMutation.isPending}
+                  disabled={saveFormMutation.isPending || deleteFormMutation.isPending}
                 >
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </Button>
+                {/* Show Delete button only for draft forms */}
+                {isEditMode && isDraftForm && (
+                  <Button 
+                    variant="outline"
+                    size="sm" 
+                    onClick={handleDeleteForm}
+                    disabled={saveFormMutation.isPending || deleteFormMutation.isPending}
+                    className="text-red-500 border-red-500 hover:bg-red-50"
+                  >
+                    {deleteFormMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </>
+                    )}
+                  </Button>
+                )}
                 <Button 
                   size="sm" 
                   onClick={handleSaveForm}
-                  disabled={saveFormMutation.isPending}
+                  disabled={saveFormMutation.isPending || deleteFormMutation.isPending}
                 >
                   {saveFormMutation.isPending ? (
                     <>
@@ -290,6 +375,34 @@ export default function FormBuilder() {
           onUpdateElement={handleUpdateElementFromProperties}
         />
       </div>
+      
+      {/* Delete Form Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this form?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your form and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteForm}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {deleteFormMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
