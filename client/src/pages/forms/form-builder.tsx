@@ -578,10 +578,9 @@ export default function FormBuilder() {
             ) : (
               <div className="px-4 pb-2 border-b border-gray-200">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-[400px] grid-cols-3">
+                  <TabsList className="grid w-[300px] grid-cols-2">
                     <TabsTrigger value="build">Form Builder</TabsTrigger>
                     <TabsTrigger value="design">Theme & Design</TabsTrigger>
-                    <TabsTrigger value="logic">Form Rules</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="build" className="mt-4 flex-1 flex">
