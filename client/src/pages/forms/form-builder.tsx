@@ -605,22 +605,6 @@ export default function FormBuilder() {
                       <p className="text-gray-500">Customize the look and feel of your form (Coming soon)</p>
                     </div>
                   </TabsContent>
-                  
-                  <TabsContent value="logic" className="mt-4 p-6">
-                    <div className="bg-white rounded-lg shadow p-6">
-                      <h2 className="text-lg font-medium mb-4">Form-Wide Rules</h2>
-                      <p className="text-gray-500">
-                        This tab allows you to set up rules that apply to your entire form. 
-                        For field-specific conditional logic, select a field and use the "Logic" tab in the right panel.
-                      </p>
-                      <div className="mt-6 p-4 bg-primary-50 rounded-md border border-primary-200">
-                        <p className="text-primary-600 font-medium">Coming Soon</p>
-                        <p className="text-sm text-primary-700 mt-1">
-                          Form-wide validation rules, form calculations, and more advanced features will be available here soon.
-                        </p>
-                      </div>
-                    </div>
-                  </TabsContent>
                 </Tabs>
               </div>
             )}
