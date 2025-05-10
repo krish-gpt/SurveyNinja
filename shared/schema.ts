@@ -86,42 +86,7 @@ export const formElementTypes = [
   "rating",
   "date",
   "file-upload",
-  "calculation",
 ] as const;
-
-export const conditionOperators = [
-  "equals",
-  "not_equals",
-  "greater_than", 
-  "less_than",
-  "is_empty",
-  "is_filled",
-] as const;
-
-export const conditionActions = [
-  "show",
-  "hide",
-] as const;
-
-export const conditionLogic = [
-  "AND",
-  "OR",
-] as const;
-
-// Define a schema for conditions
-const conditionSchema = z.object({
-  sourceElementId: z.string(), // ID of the element this condition depends on
-  operator: z.enum(conditionOperators),
-  value: z.any().optional(), // Required for some operators like equals, not required for is_empty
-  action: z.enum(conditionActions),
-});
-
-// Define a schema for calculation formulas
-const calculationSchema = z.object({
-  formula: z.string(), // Formula as string, e.g., "{field1} + {field2} * 2"
-  format: z.enum(["number", "currency", "percentage"]).optional().default("number"),
-  precision: z.number().optional().default(2), // Number of decimal places
-});
 
 export const formElementSchema = z.object({
   id: z.string(),
@@ -130,11 +95,6 @@ export const formElementSchema = z.object({
   required: z.boolean().default(false),
   options: z.array(z.string()).optional(),
   properties: z.record(z.any()).optional(),
-  // New fields for conditional logic
-  conditions: z.array(conditionSchema).optional(),
-  conditionLogic: z.enum(conditionLogic).optional().default("AND"),
-  // Fields for calculation element
-  calculation: calculationSchema.optional(),
 });
 
 export type FormElement = z.infer<typeof formElementSchema>;

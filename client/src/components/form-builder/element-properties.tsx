@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { FormElement } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
@@ -7,24 +7,15 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, X } from "lucide-react";
-import ConditionalLogic from "./conditional-logic";
-import CalculationBuilder from "./calculation-builder";
 
 interface ElementPropertiesProps {
   selectedElement: FormElement | null;
   onUpdateElement: (updatedElement: FormElement) => void;
-  formElements?: FormElement[]; // All form elements for conditional logic
 }
 
-export default function ElementProperties({ 
-  selectedElement, 
-  onUpdateElement,
-  formElements = [] 
-}: ElementPropertiesProps) {
+export default function ElementProperties({ selectedElement, onUpdateElement }: ElementPropertiesProps) {
   const { register, setValue, watch, handleSubmit, reset } = useForm();
-  const [activeTab, setActiveTab] = useState("basic");
   
   // Reset form when selected element changes
   useEffect(() => {
@@ -35,7 +26,6 @@ export default function ElementProperties({
         options: selectedElement.options,
         properties: selectedElement.properties,
       });
-      setActiveTab("basic");
     }
   }, [selectedElement, reset]);
   
@@ -52,31 +42,6 @@ export default function ElementProperties({
       required: data.required,
       options: data.options,
       properties: data.properties,
-    };
-    
-    onUpdateElement(updatedElement);
-  };
-  
-  // Handle conditional logic update
-  const handleUpdateConditions = (conditions: any[], conditionLogic: string) => {
-    if (!selectedElement) return;
-    
-    const updatedElement: FormElement = {
-      ...selectedElement,
-      conditions,
-      conditionLogic,
-    };
-    
-    onUpdateElement(updatedElement);
-  };
-  
-  // Handle calculation update
-  const handleUpdateCalculation = (calculation: any) => {
-    if (!selectedElement) return;
-    
-    const updatedElement: FormElement = {
-      ...selectedElement,
-      calculation,
     };
     
     onUpdateElement(updatedElement);
@@ -123,195 +88,140 @@ export default function ElementProperties({
         <p className="text-sm text-gray-500">Configure the selected element</p>
       </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <div className="border-b px-4">
-          <TabsList className="w-full justify-start rounded-none border-b-0 p-0">
-            <TabsTrigger
-              value="basic"
-              className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
-            >
-              Basic
-            </TabsTrigger>
-            
-            {/* Hide logic tab for calculation fields, which have their own tab */}
-            {selectedElement.type !== "calculation" && (
-              <TabsTrigger
-                value="logic"
-                className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
-              >
-                Logic
-              </TabsTrigger>
-            )}
-            
-            {/* Show calculation tab only for calculation fields */}
-            {selectedElement.type === "calculation" && (
-              <TabsTrigger
-                value="calculation"
-                className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary"
-              >
-                Calculation
-              </TabsTrigger>
-            )}
-          </TabsList>
+      <form onChange={handleSubmit(onSubmit)} className="p-4 space-y-6">
+        {/* Common properties for all elements */}
+        <div>
+          <Label htmlFor="element-label">Question Text</Label>
+          <div className="mt-1">
+            <Input
+              id="element-label"
+              {...register("label")}
+              placeholder="Enter question text"
+            />
+          </div>
         </div>
         
-        <TabsContent value="basic" className="m-0 px-4">
-          <form onChange={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Common properties for all elements */}
-            <div>
-              <Label htmlFor="element-label">Question Text</Label>
-              <div className="mt-1">
-                <Input
-                  id="element-label"
-                  {...register("label")}
-                  placeholder="Enter question text"
-                />
-              </div>
+        <div>
+          <Label htmlFor="element-description">Help Text (Optional)</Label>
+          <div className="mt-1">
+            <Input
+              id="element-description"
+              {...register("properties.helpText")}
+              placeholder="Enter additional instructions"
+            />
+          </div>
+        </div>
+        
+        <div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="element-required">Required</Label>
+            <div className="mt-1">
+              <Switch
+                id="element-required"
+                checked={watchedValues.required}
+                onCheckedChange={(checked) => setValue("required", checked)}
+              />
             </div>
-            
-            <div>
-              <Label htmlFor="element-description">Help Text (Optional)</Label>
-              <div className="mt-1">
-                <Input
-                  id="element-description"
-                  {...register("properties.helpText")}
-                  placeholder="Enter additional instructions"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="element-required">Required</Label>
-                <div className="mt-1">
-                  <Switch
-                    id="element-required"
-                    checked={watchedValues.required}
-                    onCheckedChange={(checked) => setValue("required", checked)}
+          </div>
+        </div>
+        
+        {/* Element-specific properties */}
+        <div className="pt-6 border-t border-gray-200">
+          <h3 className="text-sm font-medium text-gray-900 mb-3">Display Options</h3>
+          
+          {/* Multiple choice, checkbox, or dropdown options */}
+          {["multiple-choice", "checkbox", "dropdown"].includes(selectedElement.type) && (
+            <div className="space-y-3">
+              <Label>Options</Label>
+              {(watchedValues.options || []).map((option: string, index: number) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <Input
+                    value={option}
+                    onChange={(e) => updateOption(index, e.target.value)}
+                    placeholder={`Option ${index + 1}`}
                   />
-                </div>
-              </div>
-            </div>
-            
-            {/* Element-specific properties */}
-            <div className="pt-6 border-t border-gray-200">
-              <h3 className="text-sm font-medium text-gray-900 mb-3">Display Options</h3>
-              
-              {/* Multiple choice, checkbox, or dropdown options */}
-              {["multiple-choice", "checkbox", "dropdown"].includes(selectedElement.type) && (
-                <div className="space-y-3">
-                  <Label>Options</Label>
-                  {(watchedValues.options || []).map((option: string, index: number) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <Input
-                        value={option}
-                        onChange={(e) => updateOption(index, e.target.value)}
-                        placeholder={`Option ${index + 1}`}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeOption(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
                   <Button
                     type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addOption}
-                    className="mt-2"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeOption(index)}
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Option
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
-              )}
-              
-              {/* Rating options */}
-              {selectedElement.type === "rating" && (
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="element-size">Size</Label>
-                    <Select
-                      value={watchedValues.properties?.size || "medium"}
-                      onValueChange={(value) => setValue("properties.size", value)}
-                    >
-                      <SelectTrigger id="element-size">
-                        <SelectValue placeholder="Select size" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="small">Small</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="large">Large</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="element-style">Style</Label>
-                    <Select
-                      value={watchedValues.properties?.style || "star"}
-                      onValueChange={(value) => setValue("properties.style", value)}
-                    >
-                      <SelectTrigger id="element-style">
-                        <SelectValue placeholder="Select style" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="star">Star Rating</SelectItem>
-                        <SelectItem value="number">Number Rating</SelectItem>
-                        <SelectItem value="emoji">Emoji Rating</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="element-max">Maximum Rating</Label>
-                    <Select
-                      value={watchedValues.properties?.maxRating?.toString() || "5"}
-                      onValueChange={(value) => setValue("properties.maxRating", parseInt(value))}
-                    >
-                      <SelectTrigger id="element-max">
-                        <SelectValue placeholder="Select maximum" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="3">3</SelectItem>
-                        <SelectItem value="4">4</SelectItem>
-                        <SelectItem value="5">5</SelectItem>
-                        <SelectItem value="7">7</SelectItem>
-                        <SelectItem value="10">10</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addOption}
+                className="mt-2"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Option
+              </Button>
             </div>
-          </form>
-        </TabsContent>
-        
-        <TabsContent value="logic" className="m-0 px-4 py-2">
-          {selectedElement && (
-            <ConditionalLogic
-              selectedElement={selectedElement}
-              formElements={formElements}
-              onUpdateConditions={handleUpdateConditions}
-            />
           )}
-        </TabsContent>
-        
-        <TabsContent value="calculation" className="m-0 px-4 py-2">
-          {selectedElement && (
-            <CalculationBuilder
-              selectedElement={selectedElement}
-              formElements={formElements}
-              onUpdateCalculation={handleUpdateCalculation}
-            />
+          
+          {/* Rating options */}
+          {selectedElement.type === "rating" && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="element-size">Size</Label>
+                <Select
+                  value={watchedValues.properties?.size || "medium"}
+                  onValueChange={(value) => setValue("properties.size", value)}
+                >
+                  <SelectTrigger id="element-size">
+                    <SelectValue placeholder="Select size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="small">Small</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="large">Large</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="element-style">Style</Label>
+                <Select
+                  value={watchedValues.properties?.style || "star"}
+                  onValueChange={(value) => setValue("properties.style", value)}
+                >
+                  <SelectTrigger id="element-style">
+                    <SelectValue placeholder="Select style" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="star">Star Rating</SelectItem>
+                    <SelectItem value="number">Number Rating</SelectItem>
+                    <SelectItem value="emoji">Emoji Rating</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="element-max">Maximum Rating</Label>
+                <Select
+                  value={watchedValues.properties?.maxRating?.toString() || "5"}
+                  onValueChange={(value) => setValue("properties.maxRating", parseInt(value))}
+                >
+                  <SelectTrigger id="element-max">
+                    <SelectValue placeholder="Select maximum" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">3</SelectItem>
+                    <SelectItem value="4">4</SelectItem>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="7">7</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </form>
     </div>
   );
 }
