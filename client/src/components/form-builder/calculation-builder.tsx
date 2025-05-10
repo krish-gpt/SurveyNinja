@@ -9,10 +9,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, X, Calculator } from "lucide-react";
 
+type CalculationFormat = "number" | "currency" | "percentage";
+
+interface Calculation {
+  formula: string;
+  format: CalculationFormat;
+  precision: number;
+}
+
 interface CalculationBuilderProps {
   selectedElement: FormElement;
   formElements: FormElement[];
-  onUpdateCalculation: (calculation: any) => void;
+  onUpdateCalculation: (calculation: Calculation) => void;
 }
 
 export default function CalculationBuilder({
@@ -31,7 +39,9 @@ export default function CalculationBuilder({
   
   // Initialize calculation state
   const [formula, setFormula] = useState(selectedElement.calculation?.formula || "");
-  const [format, setFormat] = useState(selectedElement.calculation?.format || "number");
+  const [format, setFormat] = useState<"number" | "currency" | "percentage">(
+    (selectedElement.calculation?.format as "number" | "currency" | "percentage") || "number"
+  );
   const [precision, setPrecision] = useState(selectedElement.calculation?.precision?.toString() || "2");
   
   // Update calculation
@@ -139,7 +149,7 @@ export default function CalculationBuilder({
         <Label>Format</Label>
         <Select
           value={format}
-          onValueChange={(value) => setFormat(value)}
+          onValueChange={(value) => setFormat(value as "number" | "currency" | "percentage")}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select format" />
