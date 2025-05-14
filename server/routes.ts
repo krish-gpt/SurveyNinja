@@ -5,6 +5,7 @@ import { setupAuth, hashPassword, comparePasswords } from "./auth";
 import { setupStripe, verifySubscriptionStatus } from "./stripe";
 import { insertFormSchema, insertResponseSchema, insertSupportEnquirySchema, FormElement } from "@shared/schema";
 import { requirePaidPlan, checkPlanLimits } from "./middleware/subscription-guard";
+import { generateSurveyQuestions } from "./openai";
 
 // Utility functions for premium features
 function groupResponsesByDate(responses: any[]) {
