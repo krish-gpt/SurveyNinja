@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Trash2, Copy, MoreVertical } from "lucide-react";
+import { Trash2, Copy, MoreVertical, Sparkles, Loader2 } from "lucide-react";
 import { FormElements } from "./form-elements";
 
 interface FormCanvasProps {
@@ -20,6 +20,9 @@ interface FormCanvasProps {
   onRemoveElement: (elementId: string) => void;
   onSelectElement: (element: FormElement | null) => void;
   selectedElementId: string | null;
+  onAiGenerate?: () => void;
+  isAiGenerating?: boolean;
+  isPaidUser?: boolean;
 }
 
 export default function FormCanvas({
@@ -34,6 +37,9 @@ export default function FormCanvas({
   onRemoveElement,
   onSelectElement,
   selectedElementId,
+  onAiGenerate,
+  isAiGenerating = false,
+  isPaidUser = false,
 }: FormCanvasProps) {
   // Handle drag over event to allow dropping
   const handleDragOver = (event: React.DragEvent) => {
@@ -102,6 +108,36 @@ export default function FormCanvas({
                 className="mt-2 border-0 focus:ring-0 text-sm text-gray-500 w-full focus:outline-none resize-none"
                 placeholder="Form Description"
               />
+              
+              {onAiGenerate && (
+                <div className="mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onAiGenerate}
+                    disabled={isAiGenerating || !isPaidUser || !formTitle || !formDescription}
+                    className={`group ${isPaidUser ? "border-primary text-primary hover:bg-primary/10" : "border-gray-300 text-gray-400"}`}
+                  >
+                    {isAiGenerating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Create with AI
+                        {!isPaidUser && (
+                          <span className="ml-2 text-xs bg-gray-100 px-1.5 py-0.5 rounded">PRO</span>
+                        )}
+                      </>
+                    )}
+                  </Button>
+                  {!formTitle || !formDescription ? (
+                    <p className="mt-2 text-xs text-gray-500">Fill in both title and description to generate questions</p>
+                  ) : null}
+                </div>
+              )}
             </div>
             <div>
               <div className="h-16 w-16 bg-gray-100 rounded-md flex items-center justify-center text-gray-400 border border-gray-300">

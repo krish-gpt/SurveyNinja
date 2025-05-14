@@ -665,6 +665,9 @@ export default function FormBuilder() {
                       onRemoveElement={handleRemoveElement}
                       onSelectElement={handleSelectElement}
                       selectedElementId={selectedElement?.id || null}
+                      onAiGenerate={handleAiGenerate}
+                      isAiGenerating={aiGenerateMutation.isPending}
+                      isPaidUser={isPaidUser}
                     />
                   </TabsContent>
                   
