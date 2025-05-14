@@ -22,15 +22,32 @@ export async function generateSurveyQuestions(
 Create a set of survey questions based on this title: "${title}" and description: "${description}".
 Generate diverse question types appropriate for a survey about this topic.
 
-Return your response as a JSON array with objects having these properties:
-- "type": One of "short-text", "long-text", "multiple-choice", "checkbox", "dropdown", "rating", "date", "email"
-- "label": The question text
-- "required": Boolean indicating if the question is required (mix of true and false)
-- "options": Array of string choices (only for multiple-choice, checkbox, dropdown types)
+Return your response in this exact JSON format:
+{
+  "questions": [
+    {
+      "type": "short-text",
+      "label": "Question text goes here",
+      "required": true,
+      "options": null
+    },
+    {
+      "type": "multiple-choice",
+      "label": "Multiple choice question here",
+      "required": true,
+      "options": ["Option 1", "Option 2", "Option 3"]
+    }
+  ]
+}
 
-Create between 5-8 questions with a mix of different question types. Make the questions diverse, relevant, 
-and professional. Ensure all "multiple-choice", "checkbox", and "dropdown" types have appropriate options arrays.
+For types, ONLY use: "short-text", "long-text", "multiple-choice", "checkbox", "dropdown", "rating", "date", or "email".
+Include "options" arrays only for "multiple-choice", "checkbox", and "dropdown" types.
+
+Create exactly 5 questions with a mix of different question types. Make the questions relevant to the survey topic.
+The response MUST be a valid JSON object with a "questions" array containing the questions.
 `;
+
+    console.log("Calling OpenAI API with prompt:", prompt);
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -39,12 +56,38 @@ and professional. Ensure all "multiple-choice", "checkbox", and "dropdown" types
     });
 
     const content = response.choices[0].message.content;
+    console.log("Raw OpenAI response:", content);
+    
     if (!content) {
       throw new Error("No content returned from API");
     }
 
-    const parsedResponse = JSON.parse(content);
-    return parsedResponse.questions || [];
+    try {
+      const parsedResponse = JSON.parse(content);
+      console.log("Parsed response:", JSON.stringify(parsedResponse));
+      
+      if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions) || parsedResponse.questions.length === 0) {
+        console.error("Invalid response format from OpenAI:", parsedResponse);
+        return [
+          {
+            type: "short-text",
+            label: "What's your opinion on this topic?",
+            required: true
+          },
+          {
+            type: "multiple-choice",
+            label: "How would you rate your experience?",
+            required: true,
+            options: ["Excellent", "Good", "Average", "Poor"]
+          }
+        ];
+      }
+      
+      return parsedResponse.questions;
+    } catch (parseError) {
+      console.error("Error parsing OpenAI response:", parseError, "Content:", content);
+      throw new Error("Failed to parse AI-generated questions. Please try again.");
+    }
   } catch (error) {
     console.error("Error generating survey questions:", error);
     throw new Error("Failed to generate survey questions. Please try again.");
