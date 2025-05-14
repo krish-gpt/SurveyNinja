@@ -759,6 +759,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI survey generation endpoint - only for paid plan users
+  app.post("/api/forms/generate-questions", requirePaidPlan, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "You must be logged in" });
+    }
+
+    try {
+      const { title, description } = req.body;
+
+      if (!title || !description) {
+        return res.status(400).json({ 
+          message: "Both title and description are required to generate questions" 
+        });
+      }
+
+      // Generate questions using OpenAI
+      const questions = await generateSurveyQuestions(title, description);
+      
+      res.json({ questions });
+    } catch (error) {
+      console.error("Error generating survey questions:", error);
+      res.status(500).json({ 
+        message: "Error generating survey questions, please try again",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

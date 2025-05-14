@@ -5,6 +5,7 @@ import { FormElement, Form as FormType } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/navbar";
 import ElementSidebar from "@/components/form-builder/element-sidebar";
@@ -12,7 +13,7 @@ import FormCanvas from "@/components/form-builder/form-canvas";
 import ElementProperties from "@/components/form-builder/element-properties";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Save, Eye, Send, Trash2, CirclePause, Lock } from "lucide-react";
+import { Loader2, Save, Eye, Send, Trash2, CirclePause, Lock, Sparkles } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +29,9 @@ export default function FormBuilder() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { subscription } = useSubscription();
   const { toast } = useToast();
+  const isPaidUser = subscription?.plan === "paid";
   const [activeTab, setActiveTab] = useState("build");
   const [formTitle, setFormTitle] = useState("Untitled Form");
   const [formDescription, setFormDescription] = useState("");
@@ -192,6 +195,48 @@ export default function FormBuilder() {
       });
     }
   });
+  
+  // AI generation mutation
+  const aiGenerateMutation = useMutation({
+    mutationFn: async () => {
+      if (!formTitle || !formDescription) {
+        throw new Error("Both title and description are required to generate questions");
+      }
+      
+      const res = await apiRequest("POST", "/api/forms/generate-questions", {
+        title: formTitle,
+        description: formDescription
+      });
+      
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      // Convert API response format to form elements format
+      const generatedElements = data.questions.map((question: any) => ({
+        id: nanoid(),
+        type: question.type,
+        label: question.label,
+        required: question.required,
+        options: question.options,
+        properties: {},
+      }));
+      
+      // Add the new elements to the form
+      setFormElements((prev) => [...prev, ...generatedElements]);
+      
+      toast({
+        title: "AI Generation Complete",
+        description: `Successfully generated ${generatedElements.length} questions for your form`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "AI Generation Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   // Initialize form data if editing
   useEffect(() => {
@@ -326,6 +371,29 @@ export default function FormBuilder() {
     // First save the form and then publish it
     handleSaveForm();
     publishFormMutation.mutate();
+  };
+  
+  // Handle AI generation
+  const handleAiGenerate = () => {
+    if (!isPaidUser) {
+      toast({
+        title: "Pro Plan Required",
+        description: "AI generation is available only for Pro plan users. Please upgrade to access this feature.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!formTitle || !formDescription) {
+      toast({
+        title: "Information Required",
+        description: "Please provide both a title and description for your form to generate relevant questions.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    aiGenerateMutation.mutate();
   };
   
   // Handle unpublish form
