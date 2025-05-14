@@ -43,7 +43,7 @@ Return your response in this exact JSON format:
 For types, ONLY use: "short-text", "long-text", "multiple-choice", "checkbox", "dropdown", "rating", "date", or "email".
 Include "options" arrays only for "multiple-choice", "checkbox", and "dropdown" types.
 
-Create exactly 5 questions with a mix of different question types. Make the questions relevant to the survey topic.
+Create exactly 10 questions with a diverse mix of different question types. Make the questions relevant to the survey topic.
 The response MUST be a valid JSON object with a "questions" array containing the questions.
 `;
 
@@ -71,14 +71,57 @@ The response MUST be a valid JSON object with a "questions" array containing the
         return [
           {
             type: "short-text",
-            label: "What's your opinion on this topic?",
+            label: "What's your name?",
+            required: true
+          },
+          {
+            type: "email",
+            label: "What's your email address?",
             required: true
           },
           {
             type: "multiple-choice",
-            label: "How would you rate your experience?",
+            label: "How would you rate your overall experience?",
             required: true,
-            options: ["Excellent", "Good", "Average", "Poor"]
+            options: ["Excellent", "Good", "Average", "Poor", "Very Poor"]
+          },
+          {
+            type: "checkbox",
+            label: "Which aspects did you enjoy? (Select all that apply)",
+            required: false,
+            options: ["Content", "Presentation", "Interactivity", "Materials", "Support"]
+          },
+          {
+            type: "long-text",
+            label: "Please share any additional comments or feedback.",
+            required: false
+          },
+          {
+            type: "rating",
+            label: "How likely are you to recommend this to others?",
+            required: true
+          },
+          {
+            type: "dropdown",
+            label: "How did you hear about us?",
+            required: false,
+            options: ["Social Media", "Friend/Family", "Search Engine", "Advertisement", "Other"]
+          },
+          {
+            type: "date",
+            label: "When did you first engage with our content?",
+            required: false
+          },
+          {
+            type: "multiple-choice",
+            label: "Would you like to be contacted for follow-up?",
+            required: true,
+            options: ["Yes", "No"]
+          },
+          {
+            type: "short-text",
+            label: "What's one thing we could improve?",
+            required: false
           }
         ];
       }
